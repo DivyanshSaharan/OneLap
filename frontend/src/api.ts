@@ -11,6 +11,8 @@ const explanations: Record<string, string> = {
     'The private API is not configured yet. Set an access token on the server before connecting.',
   unauthorized:
     'That access token was not accepted. Check it and connect again.',
+  local_access_only:
+    'Token-free access works only on this laptop through localhost. A non-local server needs protected access.',
   hosted_requests_disabled:
     'Qwen requests are switched off on the server. No mission request was sent to the model.',
   data_sharing_not_approved:
@@ -60,23 +62,26 @@ export function explain(error: unknown): string {
   )
 }
 
-async function request(
+export async function privateRequest(
   path: string,
   token: string,
-  body?: MissionRequest,
+  body?: unknown,
+  method: 'GET' | 'POST' | 'DELETE' = body ? 'POST' : 'GET',
+  owner?: string,
 ): Promise<unknown> {
   if (!navigator.onLine) throw new ApiError('offline')
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
-    body ? 75_000 : 15_000,
+    path === '/api/missions' ? 75_000 : 15_000,
   )
   try {
     const response = await fetch(path, {
-      method: body ? 'POST' : 'GET',
+      method,
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(owner ? { 'X-OneLap-Journal-Owner': owner } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
       cache: 'no-store',
@@ -114,7 +119,7 @@ async function request(
 
 export async function getStatus(token: string) {
   try {
-    return parseStatus(await request('/api/model/status', token))
+    return parseStatus(await privateRequest('/api/model/status', token))
   } catch (error) {
     if (error instanceof ApiError) throw error
     throw new ApiError('invalid_response')
@@ -124,7 +129,7 @@ export async function getStatus(token: string) {
 export async function generateMission(token: string, input: MissionRequest) {
   let result
   try {
-    result = parseMission(await request('/api/missions', token, input))
+    result = parseMission(await privateRequest('/api/missions', token, input))
   } catch (error) {
     if (error instanceof ApiError) throw error
     throw new ApiError('invalid_response')

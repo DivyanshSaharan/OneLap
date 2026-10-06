@@ -1,6 +1,6 @@
 # OneLap: implementation and handoff plan
 
-Recorded: October 6, 2026. Status: increments 1 and 2 implemented; desktop-browser offline reload verified, physical phone and live inference pending.
+Recorded: October 6, 2026. Status: increments 1–3 implemented locally; increment 3 commit/push approved. Desktop-browser offline mission/journal flows and a read-only Atlas ping verified; physical phone, live journal operations and live inference pending.
 
 ## Product
 
@@ -64,12 +64,12 @@ The model interprets observations and generates adaptations. Application code ow
 
 Records: preferences, missions, outings/observations, feedback and model-run metadata. Keep user observations distinct from model interpretations. Link follow-up missions to the observations used. Ordinary recent-history queries are sufficient initially; no vector database/search requirement.
 
-Scope every read/write to the authenticated owner. Use stable IDs and idempotent synchronization to prevent duplicates. Pending observations must survive reloads, show sync status and not silently overwrite newer data. Completion is user-reported; opening a mission is not completion.
+Scope every read/write to the server's journal ID. Current local mode has one shared personal journal with an automatic stable ID, not authenticated individual users. Use stable IDs and idempotent synchronization to prevent duplicates. Pending observations must survive reloads, show sync status and not silently overwrite newer data. Completion is user-reported; opening a mission is not completion.
 
 ## Privacy, security and cost boundaries
 
 - No precise-location field or GPS permission.
-- Journal text/preferences are stored in Atlas; relevant observations/history go to Tinker. Disclose both clearly.
+- Explicit journal sync stores observation text, feedback and mission snapshots in Atlas. The current journal does not send these to Tinker. Future reflection/adaptation will share relevant observations/history with Tinker only after a separate disclosed approval boundary.
 - No raw photographs, microphone input or vision processing in the first release.
 - Sentry receives allowlisted timings, model identity and failure codes, not prompts, outputs, journals, credentials or location. Verify SDK defaults and exported events before enabling telemetry.
 - Provide journal deletion and relevant local cache/outbox clearing. Explain provider retention/backups; do not promise immediate deletion everywhere.
@@ -126,9 +126,11 @@ Gemma/local photo understanding, ElevenLabs narration, voice recording, GPS/rout
 - Verification: 200 offline tests, Ruff lint/format and dependency checks passed. Real loopback HTTP health/setup behaviour was smoke-tested with hosted requests disabled; the temporary server was stopped. Full details: docs/increment-1.md.
 - Increment 2 adds a component-based React phone interface, private connection controls, explicit hosted-selection consent, honest loading/errors, IndexedDB mission saving, minimal pocket view and production service-worker app caching. Saved missions appear before the preparation form. Tokens remain memory-only; private API responses are never precached.
 - Increment 2 verification: 71 frontend tests, 3 production-browser checks (offline reload using a labelled fixture, responsive sizes, disabled-provider gate), type checking/build/formatting and the existing 200 backend tests passed. The actual disabled API/proxy setup error was checked in the browser. Physical-phone testing/install prompts remain pending. Details: docs/increment-2.md.
-- No Atlas journal, training, deployment or Sentry export is implemented yet. No paid model requests have been performed. Increment 1 is committed and pushed as `171543d`; the user approved increment 2's commit and push on October 6. Consult Git history for its publication state.
+- Increment 3 adds offline observation/feedback capture, IndexedDB v2 migration, a durable owner-bound outbox, explicit sync consent, Atlas storage/pagination and content-free deletion tombstones that block replay. At the user's request, local setup no longer needs a manual owner ID or access token: a stable personal journal ID is automatic, and no-token requests are loopback-only with host/origin/proxy checks. Optional configured bearer protection remains for future non-local use. This is not multi-user login. A separately authorized authenticated Atlas ping passed, with no journal data uploaded. Setup instructions: docs/atlas-setup.md; implementation details: docs/increment-3.md.
+- Increment 3 verification: 253 offline backend tests, 121 frontend tests and 4 production-browser checks passed, including offline note reload, lost-response retry without duplication and confirmed deletion. Type/build/format/lint/dependency checks pass. Database tests use offline doubles, not Atlas. No outdoor results are claimed.
+- No training, deployment or Sentry export is implemented yet. No paid model requests have been performed. Increments 1 and 2 are committed/pushed as `171543d` and `18852b4`. Increment 3 commit/push is now approved; consult Git history for its publication state. Future commits/pushes still require new approval.
 - Approved repository: https://github.com/DivyanshSaharan/OneLap.git. Keep the project and Git history separate from GuardMate.
 - Read this plan and any new AGENTS.md instructions before continuing.
-- Next implementation increment after commit approval: protected outing journal/feedback, local observation outbox and idempotent Atlas synchronization. Atlas provisioning/credentials and the journal data boundary require the owner's participation; do not create accounts or transmit journals without authorization. Physical-phone testing remains an open verification item for increment 2.
+- Next increment after commit approval: grounded reflection and adaptive follow-ups, with explicit observation/history sharing approval before hosted tests. First configure Atlas privately with both journal gates off, then request authorization for a fictional write/read/delete smoke test. Credentials alone are not consent. Physical-phone testing remains open for increments 2 and 3.
 - Obtain the hosted-data/spending decision and configure OneLap credentials privately before live requests.
 - User time/token budget is limited. Keep updates concise and stop at approval boundaries.

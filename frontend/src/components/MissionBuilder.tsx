@@ -144,9 +144,9 @@ export function MissionBuilder({
           {!online
             ? 'Generation needs a connection. Your saved mission still works.'
             : !connected
-              ? 'Open Private access above to connect before generating.'
+              ? 'Open Backend connection above to connect before generating.'
               : disabled
-                ? 'Generation is not enabled yet. Check the private API settings.'
+                ? 'Generation is not enabled yet. Check the backend settings.'
                 : 'One request. One mission. Saved on this device automatically.'}
         </p>
       </form>

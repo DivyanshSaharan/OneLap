@@ -26,7 +26,7 @@ export function AccessPanel({
   return (
     <details className="access-panel">
       <summary>
-        <span>Private access</span>
+        <span>Backend connection</span>
         <span className="access-state">
           {status
             ? status.enabled
@@ -58,43 +58,61 @@ export function AccessPanel({
               disabled={busy}
               onClick={onDisconnect}
             >
-              Forget access
+              Disconnect
             </button>
           </>
         ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (!busy && online && candidate.trim())
-                void onConnect(candidate.trim())
-            }}
-          >
-            <label htmlFor="access-token">Server access token</label>
-            <div className="access-row">
-              <input
-                id="access-token"
-                type="password"
-                value={candidate}
-                onChange={(event) => setCandidate(event.target.value)}
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                disabled={busy}
-                placeholder="Enter your private access token"
-              />
-              <button
-                className="secondary-button"
-                type="submit"
-                disabled={busy || !online || !candidate.trim()}
+          <>
+            <p className="small muted">
+              Local development needs no owner ID or access token. Connect to
+              check the backend; this does not generate a mission or upload
+              notes.
+            </p>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={busy || !online}
+              onClick={() => void onConnect('')}
+            >
+              {connecting ? 'Checking…' : 'Connect to local backend'}
+            </button>
+            <details>
+              <summary>Protected server (optional)</summary>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (!busy && online && candidate.trim())
+                    void onConnect(candidate.trim())
+                }}
               >
-                {connecting ? 'Checking…' : 'Connect'}
-              </button>
-            </div>
-          </form>
+                <label htmlFor="access-token">Server access token</label>
+                <div className="access-row">
+                  <input
+                    id="access-token"
+                    type="password"
+                    value={candidate}
+                    onChange={(event) => setCandidate(event.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    disabled={busy}
+                    placeholder="Enter your private access token"
+                  />
+                  <button
+                    className="secondary-button"
+                    type="submit"
+                    disabled={busy || !online || !candidate.trim()}
+                  >
+                    {connecting ? 'Checking…' : 'Connect'}
+                  </button>
+                </div>
+              </form>
+            </details>
+          </>
         )}
         <p className="small muted">
-          Access stays in memory and is forgotten on reload. A saved mission
-          remains on this device until you clear it.
+          Connection state and optional tokens stay in memory and are forgotten
+          on reload. Saved missions and notes remain until you remove them.
         </p>
         <p className="small muted">
           Generation sends generic outing selections to Tinker. No location,

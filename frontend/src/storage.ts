@@ -9,11 +9,16 @@ export interface SavedMission {
   savedAt: string
 }
 
-function openDatabase(): Promise<IDBDatabase> {
+export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     let blocked = false
-    const request = indexedDB.open(DATABASE, 1)
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE)
+    const request = indexedDB.open(DATABASE, 2)
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(STORE))
+        request.result.createObjectStore(STORE)
+      if (!request.result.objectStoreNames.contains('outings'))
+        request.result.createObjectStore('outings', { keyPath: 'id' })
+    }
     request.onerror = () => reject(new Error('storage_unavailable'))
     request.onblocked = () => {
       blocked = true

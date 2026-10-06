@@ -630,3 +630,100 @@ select {
     transition: none !important;
   }
 }
+.journal {
+  margin-top: 28px;
+  padding: 30px;
+}
+.journal h2 {
+  margin: 14px 0;
+}
+.journal h3 {
+  font-family: Georgia, serif;
+  font-size: 23px;
+  font-weight: 400;
+  margin: 0 0 14px;
+}
+.journal h4 {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 10px;
+}
+.journal .notice {
+  margin: 16px 0;
+}
+.journal details > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 15px 0;
+  font-weight: 600;
+}
+.journal-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.journal-fields label {
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+.journal-fields textarea {
+  font: inherit;
+  font-size: 15px;
+  border: 1px solid #d5ddcc;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fffefa;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.6;
+}
+.journal-fields .field-grid {
+  margin-bottom: 18px;
+}
+.journal-sync,
+.journal-entries {
+  border-top: 1px solid #d5ddcc;
+  margin-top: 26px;
+  padding-top: 25px;
+}
+.journal-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.journal-sync .primary-button,
+.journal-fields .primary-button {
+  margin-top: 18px;
+}
+.journal-entry {
+  background: #f3f5ec;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.observation-text {
+  white-space: pre-wrap;
+}
+.delete-confirm {
+  border-top: 1px solid #d5ddcc;
+  padding-top: 10px;
+}
+.delete-confirm .text-button {
+  margin-left: 14px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (max-width: 760px) {
+  .journal {
+    padding: 23px;
+  }
+}

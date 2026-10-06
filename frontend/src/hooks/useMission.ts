@@ -91,6 +91,7 @@ export function useMission() {
     saved,
     error,
     storageError,
+    accessToken: token,
     connect: (candidate: string) =>
       act('connecting', async () => {
         setStatus(null)
@@ -110,7 +111,7 @@ export function useMission() {
     },
     generate: (input: MissionRequest) =>
       act('generating', async () => {
-        if (!status?.enabled || !token) return
+        if (!status?.enabled) return
         const result = await generateMission(token, input)
         if (!alive.current) return
         setMission(result)

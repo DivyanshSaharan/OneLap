@@ -13,7 +13,7 @@ def test_health_works_without_credentials_or_provider(tmp_path):
     app = create_app(Settings(data_dir=tmp_path))
     with TestClient(app) as client:
         assert client.get("/health").json() == {"service": "onelap", "status": "ok"}
-        assert client.get("/api/model/status").status_code == 503
+        assert client.get("/api/model/status").status_code == 403
         assert client.get("/docs").status_code == 404
         assert client.get("/openapi.json").status_code == 404
     assert list(tmp_path.iterdir()) == []

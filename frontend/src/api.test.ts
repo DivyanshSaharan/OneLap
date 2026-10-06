@@ -8,6 +8,13 @@ function reply(value: unknown, ok = true) {
 afterEach(() => vi.restoreAllMocks())
 
 describe('private requests', () => {
+  it('omits authorization for token-free local access', async () => {
+    const fetch = vi.fn().mockResolvedValue(reply(status))
+    vi.stubGlobal('fetch', fetch)
+    expect(await getStatus('')).toEqual(status)
+    expect(fetch.mock.calls[0][1].headers).not.toHaveProperty('Authorization')
+    expect(fetch.mock.calls[0][1].credentials).toBe('omit')
+  })
   it('checks status without making a generation request', async () => {
     const fetch = vi.fn().mockResolvedValue(reply(status))
     vi.stubGlobal('fetch', fetch)

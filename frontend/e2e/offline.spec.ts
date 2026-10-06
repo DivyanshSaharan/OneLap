@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext } from '@playwright/test'
 import { mission, status } from '../src/test/fixtures'
+import { journalStatus, owner } from '../src/journal/test-fixtures'
 
 const fixture = {
   ...mission,
@@ -7,12 +8,18 @@ const fixture = {
 }
 const token = 'fictional-browser-test-token-only'
 
-async function fixtureApi(context: BrowserContext, enabled = true) {
+async function fixtureApi(
+  context: BrowserContext,
+  enabled = true,
+  protectedAccess = false,
+) {
   const requests: string[] = []
   await context.route('**/api/**', async (route) => {
     const request = route.request()
     requests.push(request.url())
-    expect(request.headers().authorization).toBe(`Bearer ${token}`)
+    expect(request.headers().authorization).toBe(
+      protectedAccess ? `Bearer ${token}` : undefined,
+    )
     if (request.url().endsWith('/api/model/status')) {
       await route.fulfill({
         json: {
@@ -39,7 +46,7 @@ test('production app reopens a saved fixture offline without credentials or anot
   page,
   context,
 }) => {
-  const requests = await fixtureApi(context)
+  const requests = await fixtureApi(context, true, true)
   page.on('console', (message) => {
     if (message.type() === 'error')
       console.error('Browser test:', message.text())
@@ -60,11 +67,14 @@ test('production app reopens a saved fixture offline without credentials or anot
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   expect(requests).toHaveLength(0)
   await expect(page.getByText('An app update is ready.')).toHaveCount(0)
-  await page.getByText('Private access', { exact: true }).click()
+  await page.getByText('Backend connection', { exact: true }).click()
+  await page.getByText('Protected server (optional)', { exact: true }).click()
   await page.getByLabel('Server access token').fill(token)
   await page.getByRole('button', { name: 'Connect', exact: true }).click()
   await expect(page.getByText('Ready', { exact: true })).toBeVisible()
-  await page.getByRole('checkbox').check()
+  await page
+    .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
+    .check()
   await page.getByRole('button', { name: /Create my small outing/ }).click()
   await expect(
     page.getByRole('heading', { name: fixture.mission.title }),
@@ -86,7 +96,7 @@ test('production app reopens a saved fixture offline without credentials or anot
   await expect(
     page.getByText('Saved on this device · ready to reopen offline'),
   ).toBeVisible()
-  await page.getByText('Private access', { exact: true }).click()
+  await page.getByText('Backend connection', { exact: true }).click()
   await expect(page.getByLabel('Server access token')).toHaveValue('')
   await expect(
     page.getByRole('button', { name: /Create my small outing/ }),
@@ -110,7 +120,7 @@ test('production app reopens a saved fixture offline without credentials or anot
     cacheURLs.some((url) => url.includes('/api/') || url.includes(token)),
   ).toBe(false)
   expect(cacheURLs.some((url) => url.endsWith('/index.html'))).toBe(true)
-  await page.getByText('Private access', { exact: true }).click()
+  await page.getByText('Backend connection', { exact: true }).click()
   const card = await page
     .getByRole('heading', { name: fixture.mission.title })
     .boundingBox()
@@ -155,13 +165,128 @@ test('a disabled hosted provider never permits mission generation', async ({
 }) => {
   const requests = await fixtureApi(context, false)
   await page.goto('/')
-  await page.getByText('Private access', { exact: true }).click()
-  await page.getByLabel('Server access token').fill(token)
-  await page.getByRole('button', { name: 'Connect', exact: true }).click()
+  await page.getByText('Backend connection', { exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Connect to local backend', exact: true })
+    .click()
   await expect(page.getByText('Connected · generation off')).toBeVisible()
-  await page.getByRole('checkbox').check()
+  await page
+    .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
+    .check()
   await expect(
     page.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
   expect(requests).toHaveLength(1)
+})
+
+test('offline observations survive reload and explicit sync safely replays a lost reply', async ({
+  page,
+  context,
+}) => {
+  const modelRequests = await fixtureApi(context)
+  const cloud = new Map<string, Record<string, unknown>>()
+  let uploads = 0
+  await context.route('**/api/journal/**', async (route) => {
+    const request = route.request()
+    expect(request.headers().authorization).toBeUndefined()
+    if (request.url().endsWith('/status')) {
+      await route.fulfill({ json: journalStatus })
+    } else if (request.method() === 'POST') {
+      const body = request.postDataJSON()
+      expect(body.owner_id).toBe(owner)
+      expect(body.entry.observation).toBe(
+        'Browser-test observation — fictional, not an outdoor result.',
+      )
+      ++uploads
+      cloud.set(body.entry.id, body.entry)
+      if (uploads === 1) await route.abort('failed')
+      else
+        await route.fulfill({
+          json: { owner_id: owner, id: body.entry.id, status: 'stored' },
+        })
+    } else if (request.method() === 'DELETE') {
+      const id = request.url().split('/').at(-1)!
+      expect(request.headers()['x-onelap-journal-owner']).toBe(owner)
+      expect(request.postData()).toBeNull()
+      cloud.set(id, { deleted: true })
+      await route.fulfill({ json: { owner_id: owner, id, status: 'deleted' } })
+    } else throw new Error('unexpected_test_journal_read')
+  })
+  await page.goto('/')
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+  await page.getByText('Backend connection', { exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Connect to local backend', exact: true })
+    .click()
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await page
+    .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
+    .check()
+  await page.getByRole('button', { name: /Create my small outing/ }).click()
+  await expect(
+    page.getByText('Saved on this device · ready to reopen offline'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: /I’m heading out/ }).click()
+  await context.setOffline(true)
+  await page
+    .getByRole('button', { name: 'I’m back — record an observation' })
+    .click()
+  const observation =
+    'Browser-test observation — fictional, not an outdoor result.'
+  await page.getByLabel('What did you notice?').fill(observation)
+  await page
+    .getByRole('button', { name: 'Save observation on this device' })
+    .click()
+  await expect(
+    page.getByText(
+      'Observation saved on this device. Not uploaded, and not sent to AI.',
+    ),
+  ).toBeVisible()
+  await page.reload()
+  await expect(page.getByText(observation, { exact: true })).toBeVisible()
+  expect(uploads).toBe(0)
+  await page
+    .locator('section.journal')
+    .screenshot({ path: 'test-results/offline-journal-fixture.png' })
+  await context.setOffline(false)
+  await page.getByText('Backend connection', { exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Connect to local backend', exact: true })
+    .click()
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Check Atlas status' }).click()
+  await expect(
+    page.getByText(
+      'Atlas sync configured; this status does not prove a database connection.',
+    ),
+  ).toBeVisible()
+  await page.getByRole('checkbox', { name: /For this sync/ }).check()
+  await page.getByRole('button', { name: 'Sync pending changes' }).click()
+  await expect(page.getByRole('alert')).toContainText('could not be confirmed')
+  expect(uploads).toBe(1)
+  expect(cloud.size).toBe(1)
+  await page.getByRole('checkbox', { name: /For this sync/ }).check()
+  await page.getByRole('button', { name: 'Sync pending changes' }).click()
+  await expect(
+    page.getByText(
+      '1 journal change confirmed by Atlas. No AI request was made.',
+    ),
+  ).toBeVisible()
+  expect(uploads).toBe(2)
+  expect(cloud.size).toBe(1)
+  await page.getByRole('button', { name: 'Remove observation' }).click()
+  await page.getByRole('button', { name: 'Confirm removal' }).click()
+  await expect(page.getByText(/Cloud deletion pending/)).toBeVisible()
+  await expect(page.getByText(observation, { exact: true })).toHaveCount(0)
+  await page.getByRole('checkbox', { name: /For this sync/ }).check()
+  await page.getByRole('button', { name: 'Sync pending changes' }).click()
+  await expect(
+    page.getByText(
+      '1 journal change confirmed by Atlas. No AI request was made.',
+    ),
+  ).toBeVisible()
+  expect([...cloud.values()]).toEqual([{ deleted: true }])
+  expect(
+    modelRequests.filter((url) => url.endsWith('/api/missions')),
+  ).toHaveLength(1)
 })

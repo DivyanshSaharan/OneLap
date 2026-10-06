@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => ({
   getStatus: vi.fn(),
   generate: vi.fn(),
 }))
-vi.mock('./storage', () => ({
+vi.mock('./storage', async (original) => ({
+  ...(await original<typeof import('./storage')>()),
   loadMission: mocks.load,
   saveMission: mocks.save,
   clearMission: mocks.clear,
@@ -46,16 +47,20 @@ beforeEach(() => {
 
 async function connect() {
   await waitFor(() =>
-    expect(screen.getByLabelText('Server access token')).toBeEnabled(),
+    expect(
+      screen.getByRole('button', { name: 'Connect to local backend' }),
+    ).toBeEnabled(),
   )
-  fireEvent.click(screen.getByText('Private access'))
-  await userEvent.type(
-    screen.getByLabelText('Server access token'),
-    'fictional-private-token',
+  fireEvent.click(screen.getByText('Backend connection'))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Connect to local backend' }),
   )
-  await userEvent.click(screen.getByRole('button', { name: 'Connect' }))
   await screen.findByText('Ready')
-  await userEvent.click(screen.getByRole('checkbox'))
+  await userEvent.click(
+    screen.getByRole('checkbox', {
+      name: /these selections go to hosted Qwen/,
+    }),
+  )
 }
 
 it('does not call the model, check status or create a fake mission on load', async () => {
@@ -67,22 +72,23 @@ it('does not call the model, check status or create a fake mission on load', asy
     screen.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
 })
-it('requires access and hosted-selection consent before generation', async () => {
+it('connects locally without a token and still requires hosted-selection consent', async () => {
   render(<App />)
   await waitFor(() =>
-    expect(screen.getByLabelText('Server access token')).toBeEnabled(),
+    expect(
+      screen.getByRole('button', { name: 'Connect to local backend' }),
+    ).toBeEnabled(),
   )
-  fireEvent.click(screen.getByText('Private access'))
-  await userEvent.type(
-    screen.getByLabelText('Server access token'),
-    'fictional-private-token',
+  fireEvent.click(screen.getByText('Backend connection'))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Connect to local backend' }),
   )
-  await userEvent.click(screen.getByRole('button', { name: 'Connect' }))
   await screen.findByText('Ready')
   expect(
     screen.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
   expect(mocks.generate).not.toHaveBeenCalled()
+  expect(mocks.getStatus).toHaveBeenCalledWith('')
 })
 it('shows pending work, prevents duplicate submission, saves once and exposes pocket mode', async () => {
   let resolve!: (value: typeof mission) => void
@@ -200,14 +206,14 @@ it('keeps hosted generation off when the server reports it disabled', async () =
   })
   render(<App />)
   await waitFor(() =>
-    expect(screen.getByLabelText('Server access token')).toBeEnabled(),
+    expect(
+      screen.getByRole('button', { name: 'Connect to local backend' }),
+    ).toBeEnabled(),
   )
-  fireEvent.click(screen.getByText('Private access'))
-  await userEvent.type(
-    screen.getByLabelText('Server access token'),
-    'fictional-private-token',
+  fireEvent.click(screen.getByText('Backend connection'))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Connect to local backend' }),
   )
-  await userEvent.click(screen.getByRole('button', { name: 'Connect' }))
   await screen.findByText('Connected · generation off')
   expect(
     screen.getByRole('button', { name: /Create my small outing/ }),

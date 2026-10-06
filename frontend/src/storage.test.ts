@@ -32,7 +32,7 @@ it('rejects invalid responses before replacing a valid save', async () => {
 })
 it('fails visibly for corrupted stored data instead of inventing a mission', async () => {
   const database = await new Promise<IDBDatabase>((resolve) => {
-    const request = indexedDB.open('onelap-local', 1)
+    const request = indexedDB.open('onelap-local', 2)
     request.onsuccess = () => resolve(request.result)
   })
   await new Promise<void>((resolve) => {

@@ -44,13 +44,13 @@ const settings: Setting[] = ['courtyard', 'park', 'familiar_walking_area']
 const conditions: Conditions[] = ['daylight', 'evening']
 const focuses: Focus[] = ['light', 'textures', 'sounds', 'general']
 
-function object(value: unknown): Record<string, unknown> {
+export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('invalid_response')
   return value as Record<string, unknown>
 }
 
-function keys(value: Record<string, unknown>, expected: string[]): void {
+export function keys(value: Record<string, unknown>, expected: string[]): void {
   if (
     Object.keys(value).length !== expected.length ||
     expected.some((key) => !(key in value))

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AccessPanel } from './components/AccessPanel'
 import { EmptyMission } from './components/EmptyMission'
+import { JournalPanel } from './components/JournalPanel'
 import { MissionBuilder } from './components/MissionBuilder'
 import { MissionCard } from './components/MissionCard'
 import { Notice } from './components/Notice'
@@ -8,13 +9,17 @@ import { PageHeader } from './components/PageHeader'
 import { useMission } from './hooks/useMission'
 import { useOfflineShell } from './hooks/useOfflineShell'
 import { useOnline } from './hooks/useOnline'
+import { useJournal } from './journal/useJournal'
 
 export default function App() {
   const online = useOnline()
   const state = useMission()
+  const journal = useJournal(state.accessToken, online, Boolean(state.status))
   const shell = useOfflineShell()
   const [pocket, setPocket] = useState(false)
-  const busy = Boolean(state.busy) || state.restoring
+  const [returning, setReturning] = useState(0)
+  const busy =
+    Boolean(state.busy) || state.restoring || journal.busy || journal.restoring
   const offlineReady = state.saved && shell.state === 'ready'
 
   return (
@@ -137,11 +142,24 @@ export default function App() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => setPocket(false)}
+              onClick={() => {
+                setPocket(false)
+                setReturning((value) => value + 1)
+              }}
             >
-              Back to preparation
+              I’m back — record an observation
             </button>
           </div>
+        )}
+        {!pocket && (
+          <JournalPanel
+            journal={journal}
+            mission={state.mission}
+            busy={busy}
+            connected={Boolean(state.status)}
+            online={online}
+            returning={returning}
+          />
         )}
         {!pocket && (
           <footer className="page-footer">
@@ -156,7 +174,8 @@ export default function App() {
                     : 'Preparing the offline app shell…'}
             </p>
             <p className="small muted">
-              Journal and adaptive reflections are not available yet.
+              Observations save locally first. AI reflections and adaptation are
+              not available yet.
             </p>
           </footer>
         )}
