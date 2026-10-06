@@ -6,11 +6,13 @@ One short outdoor observation mission, then put the phone away. OneLap is being 
 
 ## Current state
 
-Increment 1 implements the backend mission-generation path, a Tinker adapter for open-weight Qwen3.5-4B, structured validation, protected API access and conservative spending reservations. Hosted requests are disabled by default.
+The backend implements a Tinker adapter for open-weight Qwen3.5-4B, structured mission validation, protected API access and conservative spending reservations. The React interface now supports preparation, explicit hosted-data consent, loading/error states, automatic local mission saving and a minimal pocket view. Hosted requests are disabled by default.
 
-**Not yet implemented:** the phone interface/PWA, journal, MongoDB Atlas integration, adaptation across outings, deployment, Sentry export, training or outdoor tests. There is no public deployment or claim of measured model accuracy.
+Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
-The regression tests use explicit offline doubles. The application has no fake-model fallback. No live Tinker request has been made for this increment.
+**Not yet implemented:** journal, MongoDB Atlas integration, pending-observation sync, adaptation across outings, deployment, Sentry export, training or outdoor tests. There is no public deployment or claim of measured model accuracy.
+
+Model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. No live OneLap Tinker request has been made.
 
 See [plan.md](plan.md) for the complete scope, schedule and approval rules.
 
@@ -35,6 +37,50 @@ Start the local API:
 `GET /health` works without credentials. The private endpoints require an access token. The service intentionally has no public Swagger/OpenAPI endpoints or cross-origin access enabled yet. This is a single-worker development service, not a production deployment.
 
 The local environment is isolated from GuardMate. Nothing from GuardMate's private state or model adapters is reused.
+
+### Frontend
+
+Use Node.js 22.12 or newer. Run these commands in another terminal from the project directory, keeping the API on port 8770:
+
+```powershell
+npm.cmd ci
+npm.cmd run dev
+```
+
+The development interface is at `http://127.0.0.1:5174/`. Vite proxies `/api` to the loopback API; no API key belongs in the frontend. Open **Private access** and enter your server's private access token to check status. The hosted-selection checkbox does not override server-side approval or budget gates.
+
+To verify the production/offline build:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run format:check
+npm.cmd run build
+npm.cmd run preview
+```
+
+Production preview: `http://127.0.0.1:4174/`. Service-worker caching is intentionally disabled in the development build. A phone opening a laptop's ordinary LAN HTTP address is not a secure service-worker context; use a suitable HTTPS setup when testing on an actual phone. Do not expose the private API publicly just to test it.
+
+The automated browser suite starts its own production preview on port 4175. Build first. With an existing Microsoft Edge installation:
+
+```powershell
+$env:ONELAP_TEST_BROWSER = 'msedge'
+npm.cmd run test:e2e
+```
+
+Alternatively install Playwright's Chromium (`npx.cmd playwright install chromium`) and leave `ONELAP_TEST_BROWSER` unset. These tests use disposable browser contexts and fictional API responses, not Tinker. They do not measure mission quality.
+
+### Saved missions and offline limitations
+
+- A successful generation replaces the one saved mission on this browser/device. There is no journal/history yet.
+- Read the mission, then use **I'm heading out** for the minimal view. It starts no timer, tracking, model request or completion record.
+- The access token stays in memory and is forgotten on reload. It is not written to IndexedDB, local/session storage, URLs or service-worker caches.
+- Saved mission text is not encrypted or hidden behind an account on the device. On a shared device, use **Clear this device's saved mission**; **Forget access** alone does not remove it.
+- A storage failure preserves the visible mission but does not claim it can reopen offline. If replacement saving fails, an older mission may remain on disk; try saving again before leaving.
+- Offline reading requires both the downloaded app shell and saved mission. Browser eviction, private mode or clearing site data can remove them; this is not guaranteed permanent storage.
+- Updates activate only after an explicit click, disabled during pending work or pocket mode. Generation is never automatically retried; after an error, reconnect/check server state before another attempt.
+
+More implementation and test details: [docs/increment-2.md](docs/increment-2.md).
 
 ## Configuration and approval
 
@@ -103,6 +149,8 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-200 offline tests cover input/output schemas, request combinations, policy rejection, privacy-sensitive errors, authorization, body/rate limits, approval gates, SDK call parameters, client reuse, timeout handling, token bounds and persistent/concurrent ledger admission.
+200 offline backend tests cover schemas, policy, private access/errors, admission, SDK parameters, timeouts and persistent/concurrent ledger updates. 71 frontend tests cover runtime response validation, credentials, local saving, loading/errors, concurrency and service-worker lifecycle/cache boundaries.
 
-Passing these tests is not evidence that Qwen produces good missions. Live inference, training comparison, phone/offline checks and field results remain pending.
+Three automated browser checks passed using a production build and installed Edge: offline reload of a saved fixture without another API call, layouts at 320/390/1280 pixels, and blocked generation when the provider is disabled. The real API/proxy setup-error path was also checked in the browser with hosted requests forcibly disabled. Type checking, production build, Prettier and backend Ruff checks pass.
+
+Passing these tests is not evidence that Qwen produces good missions. Live inference, training comparison, physical-phone/installation checks and field results remain pending.

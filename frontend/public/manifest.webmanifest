@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "OneLap",
+  "short_name": "OneLap",
+  "description": "After work, before scrolling.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f5ee",
+  "theme_color": "#244b3c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

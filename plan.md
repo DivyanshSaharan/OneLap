@@ -1,6 +1,6 @@
 # OneLap: implementation and handoff plan
 
-Recorded: October 6, 2026. Status: increment 1 implemented and offline-tested; live inference pending approval.
+Recorded: October 6, 2026. Status: increments 1 and 2 implemented; desktop-browser offline reload verified, physical phone and live inference pending.
 
 ## Product
 
@@ -124,9 +124,11 @@ Gemma/local photo understanding, ElevenLabs narration, voice recording, GPS/rout
 
 - Increment 1 now contains the Python backend scaffold, typed mission generation, Tinker SDK adapter, application checks, bearer-token access, payload/rate limits and persistent estimated-spend reservations. Its own virtual environment and offline tests are set up. See README.md for commands and current limitations.
 - Verification: 200 offline tests, Ruff lint/format and dependency checks passed. Real loopback HTTP health/setup behaviour was smoke-tested with hosted requests disabled; the temporary server was stopped. Full details: docs/increment-1.md.
-- No frontend, Atlas journal, training, deployment or Sentry export is implemented yet. No paid model requests have been performed. The user approved the initial increment 1 commit and push on October 6; consult Git history for publication state.
+- Increment 2 adds a component-based React phone interface, private connection controls, explicit hosted-selection consent, honest loading/errors, IndexedDB mission saving, minimal pocket view and production service-worker app caching. Saved missions appear before the preparation form. Tokens remain memory-only; private API responses are never precached.
+- Increment 2 verification: 71 frontend tests, 3 production-browser checks (offline reload using a labelled fixture, responsive sizes, disabled-provider gate), type checking/build/formatting and the existing 200 backend tests passed. The actual disabled API/proxy setup error was checked in the browser. Physical-phone testing/install prompts remain pending. Details: docs/increment-2.md.
+- No Atlas journal, training, deployment or Sentry export is implemented yet. No paid model requests have been performed. Increment 1 is committed and pushed as `171543d`; the user approved increment 2's commit and push on October 6. Consult Git history for its publication state.
 - Approved repository: https://github.com/DivyanshSaharan/OneLap.git. Keep the project and Git history separate from GuardMate.
 - Read this plan and any new AGENTS.md instructions before continuing.
-- Next implementation increment: the actual phone mission experience. Every subsequent commit/push needs fresh approval. Offline test doubles must never be presented as live AI evidence.
+- Next implementation increment after commit approval: protected outing journal/feedback, local observation outbox and idempotent Atlas synchronization. Atlas provisioning/credentials and the journal data boundary require the owner's participation; do not create accounts or transmit journals without authorization. Physical-phone testing remains an open verification item for increment 2.
 - Obtain the hosted-data/spending decision and configure OneLap credentials privately before live requests.
 - User time/token budget is limited. Keep updates concise and stop at approval boundaries.
