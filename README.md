@@ -8,13 +8,13 @@ One short outdoor observation mission, then put the phone away. OneLap is being 
 
 The backend implements a Tinker adapter for open-weight Qwen3.5-4B, structured mission validation, protected API access and conservative spending reservations. The React interface supports preparation, explicit hosted-data consent, loading/error states, automatic local mission saving and a minimal pocket view. Hosted requests are disabled by default.
 
-After returning, save a short observation and feedback locally, including while offline. The Atlas journal adapter supports explicit synchronization, stable-ID retries, owner isolation, pagination and deletion. An authenticated read-only Atlas ping passed; **journal operations have not been tested live yet**. Cloud operations and AI operations have separate approval gates, both off by default.
+After returning, save a short observation and feedback locally, including while offline. The Atlas journal adapter supports explicit synchronization, stable-ID retries, owner isolation, pagination and deletion. An authenticated read-only Atlas ping passed; **journal operations have not been tested live yet**. An optional AI reflection/follow-up flow is implemented, but its server gate is off by default and the flow has not been tested against live Atlas or Qwen.
 
 Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
-**Not yet implemented:** AI reflections or adaptation across outings, deployment, Sentry export, training or outdoor tests. There is no public deployment or claim of measured model accuracy.
+**Not yet implemented:** deployment, Sentry export, training or outdoor tests. There is no public deployment or claim of measured model accuracy.
 
-Model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. No live OneLap Tinker request has been made.
+Model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. No live OneLap Tinker request or live Atlas journal operation has been made.
 
 See [plan.md](plan.md) for the complete scope, schedule and approval rules.
 
@@ -95,9 +95,17 @@ More implementation and test details: [docs/increment-2.md](docs/increment-2.md)
 - Retrying a lost reply reuses the same ID and content. Different content under the same ID is rejected instead of overwriting it. Partial successes remain acknowledged; other changes stay pending.
 - Confirmed removal erases local note content immediately and queues cloud deletion if the entry may have reached Atlas. Sync must confirm that deletion. Atlas retains a content-free ID/owner tombstone to block delayed uploads from restoring a deleted note; provider backups may retain earlier data.
 - Cloud pages contain up to 20 records in stable-ID order, not newest-first order. Loaded cloud content stays in memory; the local outbox persists separately. Mission snapshots are **client-submitted**, not independently verified model results.
-- Offline availability depends on browser storage and the installed app shell. Eviction, private mode and clearing site data can remove local notes. No AI analysis of observations occurs in this increment.
+- Offline availability depends on browser storage and the installed app shell. Eviction, private mode and clearing site data can remove local notes. No background AI analysis occurs; optional follow-up is a separate, explicit action described below.
 
 Setup: [docs/atlas-setup.md](docs/atlas-setup.md). Implementation and verification: [docs/increment-3.md](docs/increment-3.md).
+
+### AI reflection and follow-up
+
+This flow is implemented but has **not** been live-tested. After explicitly loading the cloud journal, choose one completed observation with text and optionally up to two earlier completed notes. The page shows the exact outcome, feedback, observation and mission summary that the prompt will use. It shows the recording date for context, but dates and journal IDs are not included in the Qwen prompt. The browser sends selected IDs to the API; the server re-reads those exact, non-deleted records from the configured Atlas journal and verifies ownership before building one prompt.
+
+No notes are analyzed in the background. Before a request, the user must check server readiness and approve that specific sharing request. The server also requires `ONELAP_REFLECTION_SHARING_APPROVED=true`, the existing hosted-request/data-sharing/spending gates, and the Atlas journal gates. The new sharing gate defaults to `false`; keep all gates off until the data and cost boundary is deliberately approved. One generation uses the existing estimated-spend reservation and request limit. Selected observation text, feedback and mission summaries are sent to hosted Qwen through Tinker; check the provider's current retention and terms before enabling it. The checkbox is a UI disclosure, not a stored or server-verifiable consent receipt; the server gate is global, so keep the API private and loopback-only.
+
+The structured reflection and proposed mission are labelled model-generated. Application checks validate the mission schema, settings and restrictions, and reject an exact repeated instruction; these do not prove that the reflection is semantically grounded or that a mission is safe. Review the result before choosing **Use this next mission**. Acceptance saves the mission on this device; discarding it does not change the current mission. The response contains selected source IDs and the UI shows how many entries were used; those IDs are not yet persisted alongside the accepted mission. No live inference or journal write/read/delete smoke test has been performed for this flow.
 
 ## Configuration and approval
 
@@ -108,6 +116,7 @@ For now, keep these defaults:
 ```dotenv
 ONELAP_HOSTED_REQUESTS_ENABLED=false
 ONELAP_DATA_SHARING_APPROVED=false
+ONELAP_REFLECTION_SHARING_APPROVED=false
 ONELAP_APPROVED_BUDGET_USD=0
 ONELAP_JOURNAL_ENABLED=false
 ONELAP_ATLAS_SHARING_APPROVED=false
@@ -128,6 +137,8 @@ Only after agreeing the hosted-data boundary and spending cap should the owner i
 | `POST /api/journal/entries` | API access, server journal ID | Idempotently store one outing snapshot, observation and feedback |
 | `GET /api/journal/entries` | API access, owner header | Load an owner-scoped page; optional `after` UUID |
 | `DELETE /api/journal/entries/{id}` | API access, owner header | Replace a note with a content-free deletion tombstone |
+| `GET /api/followups/status` | Local-only or configured bearer token | Check server gates; does not query Atlas or Tinker |
+| `POST /api/followups` | API access, owner header | Re-read selected Atlas records and request one reflection/mission |
 
 Optional protected mode: `Authorization: Bearer <private-access-token>`. Token-free mode only allows loopback development with local host/origin ports 4174, 5174 and 8770. Forwarded/proxied and cross-site requests are rejected. This is a convenience boundary, not authentication for other users on the same laptop.
 
@@ -168,14 +179,14 @@ The local ledger is operational bookkeeping, not the journal and not SQLite. Sha
 
 ## Data boundary
 
-Current mission generation sends generic mission selections, instructions and schema to Tinker. It accepts no raw photos/audio, location or free-form journal entries. Explicit journal sync sends saved observation text, feedback, mission snapshots and device timestamps to Atlas; it does **not** send them to Tinker. Do not include precise locations or private details in free-form notes. Future reflection/history sharing needs a separate consent boundary.
+Current mission generation sends generic mission selections, instructions and schema to Tinker. It accepts no raw photos/audio, location or free-form journal entries. Explicit journal sync sends saved observation text, feedback, mission snapshots and device timestamps to Atlas. A separate follow-up request can send only the reviewed, selected observations, feedback and mission summaries to Tinker after per-request UI consent and the server-side reflection gate. The API receives IDs and fetches owner-scoped Atlas records; no history is automatically included. Do not include precise locations or private details in free-form notes.
 
 Validation/provider errors do not return private inputs or SDK exception text. No Sentry exporter is enabled. `.env`, `.venv`, `.data`, caches and logs are ignored by Git.
 
 ## Verification
 
-253 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. 121 frontend tests cover response validation, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency and service-worker lifecycle/cache boundaries.
+261 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. The increment-4 additions cover selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates and later-context rejection. 123 frontend tests cover response validation, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
 
-Four automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, and offline observation capture/reload followed by explicit synchronization, a lost-reply retry without duplication, and confirmed deletion. These use labelled fictional fixtures and offline cloud doubles. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier, backend Ruff and dependency checks pass.
+Four automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, and offline observation capture/reload followed by explicit synchronization, a lost-reply retry without duplication, and confirmed deletion. These use labelled fictional fixtures and offline cloud doubles. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier and backend Ruff checks pass.
 
-Passing these tests is not evidence that Qwen produces good missions or that live Atlas journal operations work. An authenticated Atlas ping passed separately; write/read/delete smoke testing, inference, training comparison, physical-phone/installation checks and field results remain pending.
+All these automated checks use offline doubles or labelled fixtures; they do not measure Qwen's mission/reflection quality or prove live Atlas behavior. An authenticated read-only Atlas ping passed separately; journal write/read/delete smoke testing, inference, training comparison, physical-phone/installation checks and field results remain pending.

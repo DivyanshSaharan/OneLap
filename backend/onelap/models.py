@@ -62,7 +62,7 @@ class GenerationIdentity(StrictModel):
     provider: Literal["tinker"] = "tinker"
     model: Literal["Qwen/Qwen3.5-4B"] = "Qwen/Qwen3.5-4B"
     target: Literal["base"] = "base"
-    prompt_version: Literal["mission-v1"] = "mission-v1"
+    prompt_version: Literal["mission-v1", "follow-up-v1"] = "mission-v1"
 
 
 class MissionResponse(StrictModel):

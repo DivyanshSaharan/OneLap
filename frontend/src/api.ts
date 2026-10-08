@@ -73,7 +73,7 @@ export async function privateRequest(
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
-    path === '/api/missions' ? 75_000 : 15_000,
+    path === '/api/missions' || path === '/api/followups' ? 75_000 : 15_000,
   )
   try {
     const response = await fetch(path, {

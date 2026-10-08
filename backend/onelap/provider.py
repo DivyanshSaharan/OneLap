@@ -111,7 +111,7 @@ class TinkerProvider:
             maximum_requests=self.settings.max_model_requests,
         )
 
-    def generate(self, messages: list[dict[str, str]]) -> MissionPlan:
+    def sample_text(self, messages: list[dict[str, str]]) -> str:
         if not self._lock.acquire(blocking=False):
             raise MissionError("generation_in_progress", 429)
         try:
@@ -135,6 +135,9 @@ class TinkerProvider:
             except Exception:
                 self._failed = True
                 raise MissionError("provider_failed_restart_required") from None
-            return parse_plan(text)
+            return text
         finally:
             self._lock.release()
+
+    def generate(self, messages: list[dict[str, str]]) -> MissionPlan:
+        return parse_plan(self.sample_text(messages))

@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import StringConstraints, field_validator, model_validator
+from pydantic import Field, StringConstraints, field_validator, model_validator
 
-from .models import GenerationIdentity, MissionPlan, StrictModel
+from .models import GenerationIdentity, MissionPlan, MissionResponse, StrictModel
 
 Identifier = Annotated[str, StringConstraints(min_length=36, max_length=36)]
 Timestamp = Annotated[str, StringConstraints(min_length=24, max_length=24)]
@@ -87,6 +87,48 @@ class JournalPage(StrictModel):
     owner_id: Identifier
     entries: list[JournalRecord]
     next_after: Identifier | None
+
+
+class FollowUpRequest(StrictModel):
+    source_id: Identifier
+    context_ids: list[Identifier] = Field(default_factory=list, max_length=2)
+
+    _source = field_validator("source_id")(identifier)
+    _contexts = field_validator("context_ids")(
+        lambda values: [identifier(value) for value in values]
+    )
+
+    @model_validator(mode="after")
+    def unique_sources(self):
+        if self.source_id in self.context_ids or len(set(self.context_ids)) != len(
+            self.context_ids
+        ):
+            raise ValueError("Follow-up source IDs must be unique")
+        return self
+
+
+class FollowUpOutput(StrictModel):
+    reflection: Annotated[str, StringConstraints(min_length=1, max_length=320)]
+    mission: MissionPlan
+
+    _plain = field_validator("reflection")(MissionPlan.plain_text.__func__)
+
+
+class FollowUpResponse(StrictModel):
+    reflection: Annotated[str, StringConstraints(min_length=1, max_length=320)]
+    mission: MissionResponse
+    source_ids: list[Identifier]
+
+    _plain = field_validator("reflection")(MissionPlan.plain_text.__func__)
+
+
+class FollowUpStatus(StrictModel):
+    enabled: bool
+    disabled_reason: str | None
+    data_boundary: str = (
+        "Each approved follow-up sends selected Atlas observations, feedback and mission summaries "
+        "to hosted Qwen through Tinker."
+    )
 
 
 class JournalStatus(StrictModel):

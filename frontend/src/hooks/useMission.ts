@@ -45,14 +45,16 @@ export function useMission() {
   async function act(
     kind: NonNullable<typeof busy>,
     task: () => Promise<void>,
-  ) {
-    if (lock.current || restoring) return
+  ): Promise<boolean> {
+    if (lock.current || restoring) return false
     lock.current = true
     setBusy(kind)
     setError(null)
+    let succeeded = true
     try {
       await task()
     } catch (failure) {
+      succeeded = false
       if (alive.current) {
         setError(explain(failure))
         if (kind === 'generating') {
@@ -64,6 +66,7 @@ export function useMission() {
       lock.current = false
       if (alive.current) setBusy(null)
     }
+    return succeeded
   }
 
   async function persist(response: MissionResponse) {
@@ -92,8 +95,8 @@ export function useMission() {
     error,
     storageError,
     accessToken: token,
-    connect: (candidate: string) =>
-      act('connecting', async () => {
+    connect: async (candidate: string) => {
+      await act('connecting', async () => {
         setStatus(null)
         setToken('')
         const result = await getStatus(candidate)
@@ -101,7 +104,8 @@ export function useMission() {
           setToken(candidate)
           setStatus(result)
         }
-      }),
+      })
+    },
     disconnect: () => {
       if (!lock.current) {
         setToken('')
@@ -109,15 +113,38 @@ export function useMission() {
         setError(null)
       }
     },
-    generate: (input: MissionRequest) =>
-      act('generating', async () => {
+    generate: async (input: MissionRequest) => {
+      await act('generating', async () => {
         if (!status?.enabled) return
         const result = await generateMission(token, input)
         if (!alive.current) return
         setMission(result)
         setSaved(false)
         await persist(result)
-      }),
+      })
+    },
+    adoptFollowUp: async (response: MissionResponse) => {
+      let savedSuggestion = false
+      const acted = await act('saving', async () => {
+        try {
+          await saveMission(response)
+        } catch {
+          if (alive.current)
+            setStorageError(
+              'The suggested mission could not be saved. Your current mission was kept.',
+            )
+          return
+        }
+        if (alive.current) {
+          setMission(response)
+          setSaved(true)
+          setStorageError(null)
+          setError(null)
+          savedSuggestion = true
+        }
+      })
+      return acted && savedSuggestion
+    },
     saveAgain: () =>
       act('saving', async () => {
         if (mission) await persist(mission)

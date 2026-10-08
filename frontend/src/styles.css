@@ -705,6 +705,106 @@ select {
   margin-top: 16px;
   overflow-wrap: anywhere;
 }
+.followup-panel {
+  border-top: 1px solid #d5ddcc;
+  margin-top: 26px;
+  padding-top: 25px;
+}
+.followup-panel > h3 {
+  font-family: Georgia, serif;
+  font-size: 23px;
+  font-weight: 400;
+  margin: 0 0 14px;
+}
+.followup-panel > label {
+  display: block;
+  margin-top: 18px;
+}
+.followup-context {
+  margin-top: 20px;
+}
+.followup-context legend {
+  margin-bottom: 9px;
+}
+.followup-context-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 10px 0;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.followup-context-item input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  accent-color: #35563b;
+}
+.followup-review {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #d5ddcc;
+  border-radius: 12px;
+  background: #fffef8;
+}
+.followup-reviewed-entry {
+  border-top: 1px solid #d5ddcc;
+  padding-top: 14px;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+.followup-reviewed-entry h4 {
+  margin-bottom: 9px;
+}
+.followup-reviewed-entry dl {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.followup-reviewed-entry dl > div {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.32fr) 1fr;
+  gap: 10px;
+}
+.followup-reviewed-entry dt {
+  color: #64705e;
+  font-weight: 600;
+}
+.followup-reviewed-entry dd {
+  margin: 0;
+}
+.followup-reviewed-entry .observation-text {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.followup-sharing {
+  border-top: 1px solid #d5ddcc;
+  margin-top: 22px;
+  padding-top: 18px;
+}
+.followup-suggestion {
+  background: #edf1e4;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 20px;
+  overflow-wrap: anywhere;
+}
+.followup-suggestion > p {
+  line-height: 1.65;
+  margin: 12px 0;
+}
+.followup-suggestion .journal-actions {
+  align-items: center;
+}
+.followup-suggestion .journal-actions .primary-button {
+  width: auto;
+  flex: 1;
+}
+.followup-suggestion .journal-actions .text-button {
+  flex: 0 0 auto;
+}
 .observation-text {
   white-space: pre-wrap;
 }

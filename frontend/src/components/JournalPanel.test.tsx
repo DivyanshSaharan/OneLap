@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { expect, it, vi } from 'vitest'
 import { mission } from '../test/fixtures'
 import { journalStatus, outing, owner } from '../journal/test-fixtures'
+import type { useFollowUp } from '../journal/useFollowUp'
 import type { useJournal } from '../journal/useJournal'
 import { JournalPanel } from './JournalPanel'
 
@@ -31,6 +32,18 @@ function state(
 }
 const props = {
   mission,
+  followUp: {
+    status: null,
+    suggestion: null,
+    busy: false,
+    error: null,
+    message: null,
+    check: vi.fn().mockResolvedValue(true),
+    generate: vi.fn().mockResolvedValue(true),
+    clear: vi.fn(),
+    accepted: vi.fn(),
+  } as unknown as ReturnType<typeof useFollowUp>,
+  onAccept: vi.fn().mockResolvedValue(true),
   busy: false,
   connected: false,
   online: false,

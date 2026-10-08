@@ -10,16 +10,22 @@ import { useMission } from './hooks/useMission'
 import { useOfflineShell } from './hooks/useOfflineShell'
 import { useOnline } from './hooks/useOnline'
 import { useJournal } from './journal/useJournal'
+import { useFollowUp } from './journal/useFollowUp'
 
 export default function App() {
   const online = useOnline()
   const state = useMission()
   const journal = useJournal(state.accessToken, online, Boolean(state.status))
+  const followUp = useFollowUp(state.accessToken, online, Boolean(state.status))
   const shell = useOfflineShell()
   const [pocket, setPocket] = useState(false)
   const [returning, setReturning] = useState(0)
   const busy =
-    Boolean(state.busy) || state.restoring || journal.busy || journal.restoring
+    Boolean(state.busy) ||
+    state.restoring ||
+    journal.busy ||
+    journal.restoring ||
+    followUp.busy
   const offlineReady = state.saved && shell.state === 'ready'
 
   return (
@@ -154,11 +160,13 @@ export default function App() {
         {!pocket && (
           <JournalPanel
             journal={journal}
+            followUp={followUp}
             mission={state.mission}
             busy={busy}
             connected={Boolean(state.status)}
             online={online}
             returning={returning}
+            onAccept={state.adoptFollowUp}
           />
         )}
         {!pocket && (
@@ -174,8 +182,8 @@ export default function App() {
                     : 'Preparing the offline app shell…'}
             </p>
             <p className="small muted">
-              Observations save locally first. AI reflections and adaptation are
-              not available yet.
+              Reflections use selected Atlas notes only after separate sharing
+              approval.
             </p>
           </footer>
         )}

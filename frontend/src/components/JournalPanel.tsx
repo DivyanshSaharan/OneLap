@@ -1,25 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MissionResponse } from '../domain'
 import { journalReasons } from '../journal/api'
-import type { Feedback, Outcome } from '../journal/domain'
+import type { Feedback, Outcome, Outing } from '../journal/domain'
 import type { useJournal } from '../journal/useJournal'
+import type { useFollowUp } from '../journal/useFollowUp'
+import { FollowUpPanel } from './FollowUpPanel'
 import { Notice } from './Notice'
 
 interface Props {
   journal: ReturnType<typeof useJournal>
+  followUp: ReturnType<typeof useFollowUp>
   mission: MissionResponse | null
   busy: boolean
   connected: boolean
   online: boolean
   returning: number
+  onAccept: (mission: MissionResponse) => Promise<boolean>
 }
 export function JournalPanel({
   journal,
+  followUp,
   mission,
   busy,
   connected,
   online,
   returning,
+  onAccept,
 }: Props) {
   const [outcome, setOutcome] = useState<Outcome>('completed')
   const [feedback, setFeedback] = useState<Feedback>(null)
@@ -72,6 +78,21 @@ export function JournalPanel({
         local: false,
       })),
   ].sort((a, b) => b.entry.recorded_at.localeCompare(a.entry.recorded_at))
+  const syncedLocal = journal.records.flatMap((row) =>
+    row.kind === 'entry' &&
+    row.stage === 'synced' &&
+    row.owner_id === journal.status?.owner_id
+      ? [row.entry]
+      : [],
+  )
+  const followUpEntries: Outing[] = [
+    ...syncedLocal,
+    ...journal.cloud
+      // A local tombstone or pending version must not expose a stale cloud copy
+      // as an eligible prompt source.
+      .filter((row) => !localIds.has(row.entry.id))
+      .map((row) => row.entry),
+  ].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))
   return (
     <section className="journal panel" aria-labelledby="journal-title">
       <span className="eyebrow">03 / WHEN YOU’RE BACK</span>
@@ -176,8 +197,9 @@ export function JournalPanel({
             </label>
             <p className="small muted">
               Up to 1,000 characters. Optional if you stopped or skipped. Saved
-              locally first; no AI analysis yet. Unsaved drafts do not survive a
-              reload—use Save before closing.
+              locally first. AI follow-up is separate and only happens after you
+              review selected notes and approve one hosted request. Unsaved
+              drafts do not survive a reload—use Save before closing.
             </p>
             <button
               className="primary-button"
@@ -281,6 +303,15 @@ export function JournalPanel({
           {journal.busy ? 'Working on your journal…' : 'Sync pending changes'}
         </button>
       </div>
+      <FollowUpPanel
+        followUp={followUp}
+        entries={followUpEntries}
+        owner={journal.status?.enabled ? journal.status.owner_id : null}
+        busy={busy}
+        connected={connected}
+        online={online}
+        onAccept={onAccept}
+      />
       <div className="journal-entries">
         <h3>Saved observations</h3>
         {journal.restoring ? (

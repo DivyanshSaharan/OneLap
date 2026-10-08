@@ -15,6 +15,7 @@ from .access import local_request
 from .budget import BudgetLedger
 from .config import ROOT, Settings
 from .errors import MissionError
+from .followup_routes import followup_routes
 from .journal_config import JournalSettings
 from .journal_repository import AtlasJournal
 from .journal_routes import journal_routes
@@ -144,4 +145,7 @@ def create_app(
         return service.generate(request)
 
     app.include_router(journal_routes(journal_settings, journal, authorize, RequestLimiter(30)))
+    app.include_router(
+        followup_routes(settings, journal_settings, journal, provider, authorize, limiter)
+    )
     return app

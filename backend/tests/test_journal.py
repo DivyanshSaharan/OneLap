@@ -66,13 +66,22 @@ class Collection:
     def find(self, query):
         if self.failure:
             raise RuntimeError("PRIVATE DATABASE PASSWORD")
+        identifier = query.get("_id")
+
+        def matches_id(row):
+            if identifier is None:
+                return True
+            if "$gt" in identifier:
+                return row["_id"] > identifier["$gt"]
+            return row["_id"] in identifier["$in"]
+
         return Cursor(
             [
                 deepcopy(row)
                 for row in self.documents.values()
                 if row["owner_id"] == query["owner_id"]
                 and row["deleted"] is False
-                and ("_id" not in query or row["_id"] > query["_id"]["$gt"])
+                and matches_id(row)
             ]
         )
 
@@ -250,6 +259,27 @@ def test_owner_scoped_stable_pagination(store, entry):
     assert len(second.entries) == 5 and second.next_after is None
     assert len({row.entry.id for row in [*page.entries, *second.entries]}) == 25
     assert len(repository.page(OTHER, None).entries) == 1
+
+
+def test_selected_records_are_owner_scoped_and_keep_requested_order(store, entry):
+    repository, _, _ = store
+    previous = entry.model_copy(
+        update={
+            "id": str(UUID(int=101)),
+            "recorded_at": "2026-10-05T14:00:00.000Z",
+        }
+    )
+    repository.save(OWNER, entry)
+    repository.save(OWNER, previous)
+
+    selected = repository.selected(OWNER, [entry.id, previous.id])
+    assert [record.entry.id for record in selected] == [entry.id, previous.id]
+    with pytest.raises(MissionError, match="journal_source_not_found"):
+        repository.selected(OTHER, [entry.id])
+
+    repository.delete(OWNER, previous.id)
+    with pytest.raises(MissionError, match="journal_source_not_found"):
+        repository.selected(OWNER, [previous.id])
 
 
 @pytest.mark.parametrize(

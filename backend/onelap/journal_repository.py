@@ -116,6 +116,26 @@ class AtlasJournal:
         except Exception:
             raise MissionError("journal_unavailable") from None
 
+    def selected(self, owner: str, entry_ids: list[str]) -> list[JournalRecord]:
+        try:
+            if not entry_ids or len(entry_ids) > 3 or len(set(entry_ids)) != len(entry_ids):
+                raise MissionError("invalid_request", 422)
+            keys = [f"{owner}:{entry_id}" for entry_id in entry_ids]
+            documents = list(
+                self._collection().find({"_id": {"$in": keys}, "owner_id": owner, "deleted": False})
+            )
+            records = {
+                record.entry.id: record
+                for record in (self._record(row, owner) for row in documents)
+            }
+            if set(records) != set(entry_ids):
+                raise MissionError("journal_source_not_found", 404)
+            return [records[entry_id] for entry_id in entry_ids]
+        except MissionError:
+            raise
+        except Exception:
+            raise MissionError("journal_unavailable") from None
+
     def delete(self, owner: str, entry_id: str):
         try:
             result = self._collection().replace_one(

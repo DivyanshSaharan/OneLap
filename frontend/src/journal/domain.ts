@@ -41,6 +41,16 @@ export interface JournalPage {
   entries: CloudRecord[]
   next_after: string | null
 }
+export interface FollowUpStatus {
+  enabled: boolean
+  disabled_reason: string | null
+  data_boundary: string
+}
+export interface FollowUpSuggestion {
+  reflection: string
+  mission: import('../domain').MissionResponse
+  source_ids: string[]
+}
 
 export function identifier(value: unknown): value is string {
   return (
@@ -149,4 +159,45 @@ export function parsePage(value: unknown, owner: string): JournalPage {
   )
     throw new Error('invalid_response')
   return value as JournalPage
+}
+
+export function parseFollowUpStatus(value: unknown): FollowUpStatus {
+  const status = object(value)
+  keys(status, ['enabled', 'disabled_reason', 'data_boundary'])
+  if (
+    typeof status.enabled !== 'boolean' ||
+    !(
+      status.disabled_reason === null ||
+      (typeof status.disabled_reason === 'string' &&
+        status.disabled_reason.length <= 80)
+    ) ||
+    (status.enabled && status.disabled_reason !== null) ||
+    typeof status.data_boundary !== 'string' ||
+    status.data_boundary.length > 500
+  )
+    throw new Error('invalid_response')
+  return value as FollowUpStatus
+}
+
+export function parseFollowUp(
+  value: unknown,
+  expectedIds: string[],
+): FollowUpSuggestion {
+  const result = object(value)
+  keys(result, ['reflection', 'mission', 'source_ids'])
+  if (
+    typeof result.reflection !== 'string' ||
+    result.reflection.length > 320 ||
+    !result.reflection.trim() ||
+    /[\p{C}<>\u0060]/u.test(result.reflection) ||
+    !Array.isArray(result.source_ids) ||
+    result.source_ids.length !== expectedIds.length ||
+    result.source_ids.some((id, index) => id !== expectedIds[index])
+  )
+    throw new Error('invalid_response')
+  return {
+    reflection: result.reflection,
+    mission: parseMission(result.mission),
+    source_ids: result.source_ids as string[],
+  }
 }

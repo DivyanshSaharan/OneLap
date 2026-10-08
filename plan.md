@@ -1,6 +1,6 @@
 # OneLap: implementation and handoff plan
 
-Recorded: October 6, 2026. Status: increments 1–3 implemented locally; increment 3 commit/push approved. Desktop-browser offline mission/journal flows and a read-only Atlas ping verified; physical phone, live journal operations and live inference pending.
+Recorded: October 8, 2026. Status: increments 1–4 are implemented; increment 4 offline tests/build/browser checks now pass. A read-only Atlas ping passed earlier. Physical-phone testing, live journal operations and live inference remain pending.
 
 ## Product
 
@@ -69,7 +69,7 @@ Scope every read/write to the server's journal ID. Current local mode has one sh
 ## Privacy, security and cost boundaries
 
 - No precise-location field or GPS permission.
-- Explicit journal sync stores observation text, feedback and mission snapshots in Atlas. The current journal does not send these to Tinker. Future reflection/adaptation will share relevant observations/history with Tinker only after a separate disclosed approval boundary.
+- Explicit journal sync stores observation text, feedback and mission snapshots in Atlas. No background journal reads or model analysis occur. A user-selected follow-up can send the reviewed observation, feedback and mission summary to Tinker only after per-request UI consent, a separate server sharing gate and the existing provider, budget and Atlas gates.
 - No raw photographs, microphone input or vision processing in the first release.
 - Sentry receives allowlisted timings, model identity and failure codes, not prompts, outputs, journals, credentials or location. Verify SDK defaults and exported events before enabling telemetry.
 - Provide journal deletion and relevant local cache/outbox clearing. Explain provider retention/backups; do not promise immediate deletion everywhere.
@@ -100,7 +100,7 @@ Outdoor evidence: two short outings, preparation time, phone interactions, missi
 1. **Base-model mission generation:** structured schema, real Tinker adapter, validation, limits and failure tests. First hosted request waits for data/spending approval.
 2. **Phone mission experience:** mobile UI, honest loading/errors, saved mission and offline access; verify on an actual phone.
 3. **Persistent outing memory:** protected Atlas journal/feedback, reliable offline synchronization and deletion.
-4. **Adaptive follow-ups:** history retrieval, grounded reflection and a non-repetitive next mission; handle unsuitable tasks.
+4. **Adaptive follow-ups:** implemented in the current uncommitted increment; live Atlas/Qwen and frontend verification still pending. It retrieves only selected notes, returns a reflection and next mission, and handles schema/policy constraints and exact repeats.
 5. **Protected deployment:** Render configuration, server-side secrets, access/data isolation and actual browser connectivity.
 6. **Private diagnostic tracing:** Sentry spans for retrieval, inference, validation and persistence; verify no private-content exports.
 7. **Training/evaluation tooling:** reviewed splits, baseline, budgeted LoRA pilot, matched comparison and promotion decision.
@@ -128,9 +128,10 @@ Gemma/local photo understanding, ElevenLabs narration, voice recording, GPS/rout
 - Increment 2 verification: 71 frontend tests, 3 production-browser checks (offline reload using a labelled fixture, responsive sizes, disabled-provider gate), type checking/build/formatting and the existing 200 backend tests passed. The actual disabled API/proxy setup error was checked in the browser. Physical-phone testing/install prompts remain pending. Details: docs/increment-2.md.
 - Increment 3 adds offline observation/feedback capture, IndexedDB v2 migration, a durable owner-bound outbox, explicit sync consent, Atlas storage/pagination and content-free deletion tombstones that block replay. At the user's request, local setup no longer needs a manual owner ID or access token: a stable personal journal ID is automatic, and no-token requests are loopback-only with host/origin/proxy checks. Optional configured bearer protection remains for future non-local use. This is not multi-user login. A separately authorized authenticated Atlas ping passed, with no journal data uploaded. Setup instructions: docs/atlas-setup.md; implementation details: docs/increment-3.md.
 - Increment 3 verification: 253 offline backend tests, 121 frontend tests and 4 production-browser checks passed, including offline note reload, lost-response retry without duplication and confirmed deletion. Type/build/format/lint/dependency checks pass. Database tests use offline doubles, not Atlas. No outdoor results are claimed.
-- No training, deployment or Sentry export is implemented yet. No paid model requests have been performed. Increments 1 and 2 are committed/pushed as `171543d` and `18852b4`. Increment 3 commit/push is now approved; consult Git history for its publication state. Future commits/pushes still require new approval.
+- Increment 4 adds a server-checked selection of one completed Atlas note and up to two optional context notes, an explicit review/consent UI, owner-scoped re-read from Atlas, a separately gated Qwen/Tinker request, and a review-before-saving response. `ONELAP_REFLECTION_SHARING_APPROVED` defaults off. Only selected outcome/feedback/observation/mission fields enter the model prompt. Offline verification passed: 261 backend tests, 123 frontend tests, Ruff, Prettier, TypeScript, production build and four Edge browser checks. No live Atlas or inference call was made.
+- No training, deployment or Sentry export is implemented yet. No paid model requests have been performed. Increments 1–3 are committed/pushed; latest baseline: `707edd3`. Future commits/pushes still require new approval.
 - Approved repository: https://github.com/DivyanshSaharan/OneLap.git. Keep the project and Git history separate from GuardMate.
 - Read this plan and any new AGENTS.md instructions before continuing.
-- Next increment after commit approval: grounded reflection and adaptive follow-ups, with explicit observation/history sharing approval before hosted tests. First configure Atlas privately with both journal gates off, then request authorization for a fictional write/read/delete smoke test. Credentials alone are not consent. Physical-phone testing remains open for increments 2 and 3.
+- Next steps: inspect this increment's diff, then ask whether the user wants a no-test review, test/build verification, or a commit proposal. Never enable the reflection/Atlas/model gates or make a live request without explicit authorization. For live tests, get approval for exact notes/data transfer and spend first. Physical-phone testing remains open for increments 2 and 3.
 - Obtain the hosted-data/spending decision and configure OneLap credentials privately before live requests.
 - User time/token budget is limited. Keep updates concise and stop at approval boundaries.

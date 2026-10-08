@@ -20,6 +20,7 @@ class Settings:
     api_key: str = field(default="", repr=False)
     hosted_enabled: bool = False
     data_sharing_approved: bool = False
+    reflection_sharing_approved: bool = False
     budget_microdollars: int = 0
     max_model_requests: int = 20
     data_dir: Path = ROOT / ".data"
@@ -55,6 +56,7 @@ class Settings:
             api_key=os.environ.get("TINKER_API_KEY", ""),
             hosted_enabled=boolean("ONELAP_HOSTED_REQUESTS_ENABLED"),
             data_sharing_approved=boolean("ONELAP_DATA_SHARING_APPROVED"),
+            reflection_sharing_approved=boolean("ONELAP_REFLECTION_SHARING_APPROVED"),
             budget_microdollars=budget,
             max_model_requests=maximum,
         )
