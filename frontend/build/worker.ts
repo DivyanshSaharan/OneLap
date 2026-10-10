@@ -18,7 +18,8 @@ self.addEventListener('message', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin ||
-      url.pathname.startsWith('/api/') || url.pathname === '/health') return;
+      url.pathname.startsWith('/api/') || url.pathname === '/health' ||
+      url.pathname === '/handoff' || url.pathname === '/captured-mission.json') return;
   if (event.request.mode === 'navigate') {
     event.respondWith(caches.open(CACHE).then(cache => cache.match(
       new URL('index.html', self.registration.scope).href

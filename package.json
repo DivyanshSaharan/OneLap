@@ -9,10 +9,13 @@
     "typecheck": "tsc --project frontend/tsconfig.json --noEmit",
     "test": "vitest run --config frontend/vitest.config.ts",
     "test:e2e": "playwright test --config frontend/playwright.config.ts",
+    "test:handoff": "node --test scripts/static-handoff.test.mjs",
     "build": "npm run typecheck && vite build --config frontend/vite.config.ts",
     "preview": "vite preview --config frontend/vite.config.ts --host 127.0.0.1 --port 4174",
-    "format": "prettier --write frontend package.json .prettierrc.json",
-    "format:check": "prettier --check frontend package.json .prettierrc.json"
+    "handoff": "node scripts/static-handoff.mjs",
+    "demo": "node scripts/record-demo.mjs",
+    "format": "prettier --write frontend scripts/*.mjs package.json .prettierrc.json",
+    "format:check": "prettier --check frontend scripts/*.mjs package.json .prettierrc.json"
   },
   "dependencies": {
     "react": "19.3.0",

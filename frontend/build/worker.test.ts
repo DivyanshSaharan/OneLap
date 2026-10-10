@@ -55,6 +55,9 @@ it.each([
   ['http://localhost/health', 'GET', 'cors'],
   ['http://external.example/assets/app.js', 'GET', 'cors'],
   ['http://localhost/private.json', 'GET', 'cors'],
+  ['http://localhost/handoff', 'GET', 'navigate'],
+  ['http://localhost/captured-mission.json', 'GET', 'navigate'],
+  ['http://localhost/captured-mission.json', 'GET', 'cors'],
 ])(
   'does not intercept private or unrelated requests %s',
   (url, method, mode) => {

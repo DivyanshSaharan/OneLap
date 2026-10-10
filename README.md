@@ -101,7 +101,18 @@ Expand **Use a captured mission · no model request**, choose a single mission-r
 
 Saving replaces the current mission only after local storage confirms success. Existing observation notes are kept. Imported files remain labelled **model provenance not verified**, including after offline reload and in pocket mode. Old saved missions remain readable. A later explicit cloud sync/follow-up has its own sharing boundary; imported snapshots are client-submitted, not independently verified model results.
 
-[This unmodified captured example](examples/captured-followup-2026-10-10.json) came from the synthetic live retest, not an actual outing. Read [its provenance and quality caveats](examples/README.md) before deciding whether to use it. The app does not load it as a fallback. [Phone/outdoor and demo instructions](docs/field-test.md) are provided; real field results and a demo video remain pending.
+[This unmodified captured example](examples/captured-followup-2026-10-10.json) came from the synthetic live retest, not an actual outing. Read [its provenance and quality caveats](examples/README.md) before deciding whether to use it. The app does not load it as a fallback. [Phone/outdoor instructions](docs/field-test.md) are provided; real field results remain pending.
+
+### No-spend phone handoff and demo
+
+```powershell
+npm.cmd run build
+npm.cmd run handoff
+```
+
+The private guide is `http://127.0.0.1:4176/handoff`. Unlike Vite preview, this static server has **no API proxy**: it serves only public build files and the captured example, rejects uploads/API routes, and never reads `.env`. [Android USB instructions](docs/phone-setup.md) explain loading through one local port, then unplugging and testing offline. No physical-phone or outdoor result is claimed yet. Keep the exact origin; local browser storage is not shared across ports/devices.
+
+[The demo recorder](docs/demo.md) produces a locally reviewed video in a disposable desktop browser, showing captured base-model playback, pocket mode, disconnected reload and a fictional skipped outing note. It makes no cloud requests. Videos/screenshots/manifests stay ignored and local; public upload needs approval. [A DEV draft](docs/submission-draft.md) is prepared, but its video link and outdoor evidence are still pending. Nothing has been published.
 
 ### Observation journal
 
@@ -238,8 +249,10 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-363 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection, smoke cleanup/resumption and metadata-only tracing. The 26 tracing tests inspect actual SDK envelopes with an in-memory transport and forbid HTTP export. The 55 evaluation tests cover corpus separation, every-case scoring, failure denominators, exact prompt/output hashes, human-review applicability, fixture exclusions, comparison matching and offline-only CLI behavior. The 155 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries, follow-up selection/consent and 29 new local-import cases.
+363 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection, smoke cleanup/resumption and metadata-only tracing. The 26 tracing tests inspect actual SDK envelopes with an in-memory transport and forbid HTTP export. The 55 evaluation tests cover corpus separation, every-case scoring, failure denominators, exact prompt/output hashes, human-review applicability, fixture exclusions, comparison matching and offline-only CLI behavior. The 158 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries, follow-up selection/consent, 29 local-import cases and three handoff/download worker-exclusion cases.
 
 Five automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, offline observation capture/reload followed by explicit sync/lost-reply retry/deletion, and reviewed file import/reload with persistent unverified provenance and zero private API requests. These use labelled fictional fixtures and offline cloud doubles, not a physical phone or live browser-to-provider session. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier and backend Ruff checks pass.
+
+The API-free static handoff has 24 separate Node checks (`npm.cmd run test:handoff`) for host, method, public-file/download and private-path boundaries. Three additional worker-exclusion cases bring the frontend total to 158. The isolated recorded walkthrough also passes guide/download access after caching, exact capture-byte checks, offline mission/note reload and zero private API attempts. Its checkpoint screenshots were inspected, but full video review/public upload is still pending. These are desktop checks, not a physical-phone or outdoor result.
 
 The unit/browser suites do not measure Qwen's mission/reflection quality. Separate real-service testing verified one accepted mission, one revised follow-up and the isolated Atlas checks. The total local reservation is $0.003103 across four requests, not an invoice amount. This tiny resumed smoke test is not an accuracy evaluation. Training comparison, physical-phone/installation checks and field results remain pending.

@@ -1,6 +1,6 @@
 # Increment 9: captured-mission handoff
 
-Implemented locally, awaiting approval before commit/push. Increment 8 was committed and pushed as `953a4bf` on October 10, 2026.
+Committed and pushed as `0047c60` on October 10, 2026 with approval. Increment 8 was committed and pushed as `953a4bf` earlier that day. The verification below describes increment 9's boundary; later additions are documented separately.
 
 ## One functionality
 

@@ -4,8 +4,8 @@ These are **instructions and an unfilled checklist**, not field results. The loc
 
 ## First phone check
 
-1. Build (`npm.cmd run build`) and run production preview (`npm.cmd run preview`). Use a compatible phone browser over a suitable private HTTPS or localhost setup. Ordinary laptop LAN HTTP is not enough for service-worker offline caching. Do not expose the private API or enable paid generation to work around this.
-2. Transfer only `examples/captured-followup-2026-10-10.json` to the phone. Do not transfer `.env`, the full smoke report, credentials or the spend ledger.
+1. Follow [the private Android setup](phone-setup.md): build (`npm.cmd run build`), run the API-free static handoff (`npm.cmd run handoff`), and map only loopback port 4176 over USB. Ordinary laptop LAN HTTP is not enough for service-worker offline caching. No backend, public tunnel or paid generation is needed. Physical-phone success remains unverified.
+2. Download only the public captured mission from the connected handoff guide. Do not transfer `.env`, the full smoke report, credentials or the spend ledger.
 3. Open OneLap, expand **Use a captured mission · no model request**, choose the file and read the preview. If unsuitable, discard it. The example has documented semantic weaknesses, not a guarantee about your surroundings.
 4. If you want it, check the review box and save. Verify the imported/unverified label and **Saved on this device · ready to reopen offline**. If the app shell is not ready, do not claim offline readiness.
 5. Disconnect networking, reload the page and verify the mission and provenance label remain. Enter pocket mode; confirm the preparation/import controls disappear. Record a harmless local test note after returning and reload again. Do not sync real notes without separately reviewing the sharing boundary.
@@ -41,6 +41,8 @@ Keep raw notes private until reviewed. Exact places, addresses, office details, 
 - Demonstrate pocket mode, disconnected reload and local observation capture. A desktop phone-width recording must be labelled as such; do not call it a phone/outdoor test.
 - Link the actual Atlas/Tinker integration evidence separately. Local import proves neither cloud synchronization nor live follow-up.
 - Add real outing feedback only after it exists. Review the recording before public sharing; do not publish automatically.
+
+[The reproducible local recorder](demo.md) demonstrates this UI loop in a new desktop context, with visible capture-playback disclosures and a fictional skipped outing. Its video stays ignored and local until reviewed and approved for upload. [The DEV draft](submission-draft.md) still needs a real public video URL and truthful field-test update.
 
 ## Submission boundary
 
