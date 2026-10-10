@@ -10,6 +10,7 @@
     "test": "vitest run --config frontend/vitest.config.ts",
     "test:e2e": "playwright test --config frontend/playwright.config.ts",
     "test:handoff": "node --test scripts/static-handoff.test.mjs",
+    "test:browser-boundary": "node --test scripts/browser-workflow.test.mjs",
     "build": "npm run typecheck && vite build --config frontend/vite.config.ts",
     "preview": "vite preview --config frontend/vite.config.ts --host 127.0.0.1 --port 4174",
     "handoff": "node scripts/static-handoff.mjs",

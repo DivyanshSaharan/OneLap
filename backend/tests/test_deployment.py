@@ -51,3 +51,32 @@ def test_bundled_frontend_requires_a_server_access_token(tmp_path):
 
     with pytest.raises(RuntimeError, match="OneLap deployments require ONELAP_ACCESS_TOKEN"):
         create_app(Settings(serve_frontend=True, frontend_directory=tmp_path))
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("index.html", "text/html; charset=utf-8"),
+        ("sw.js", "text/javascript; charset=utf-8"),
+        ("assets/app.js", "text/javascript; charset=utf-8"),
+        ("assets/app.css", "text/css; charset=utf-8"),
+        ("icon.svg", "image/svg+xml"),
+        ("manifest.webmanifest", "application/manifest+json"),
+    ],
+)
+def test_public_mime_types_ignore_incorrect_os_registry(tmp_path, monkeypatch, name, expected):
+    monkeypatch.setattr("starlette.responses.guess_type", lambda _path: ("text/plain", None))
+    (tmp_path / "assets").mkdir()
+    (tmp_path / name).write_text("public fixture", encoding="utf-8")
+    app = create_app(
+        Settings(
+            access_token=ACCESS_TOKEN,
+            serve_frontend=True,
+            frontend_directory=tmp_path,
+        )
+    )
+    with TestClient(app) as client:
+        response = client.get("/" + name)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == expected
+    assert response.headers["x-content-type-options"] == "nosniff"

@@ -1,6 +1,6 @@
 # Increment 10: no-spend field-test kit
 
-Increment 9 was committed and pushed as `0047c60` with approval. This increment is uncommitted and requires fresh approval before commit/push.
+Increment 9 was committed and pushed as `0047c60` with approval. This increment was approved, committed and pushed as `07f19e2` on October 10.
 
 ## One functionality
 
@@ -18,4 +18,4 @@ The DEV draft follows the challenge structure, keeps video/field evidence pendin
 
 The recorder dependency was initially absent; it was downloaded into the ignored project cache, not installed system-wide. The final recorded walkthrough passes with zero private API attempts, blocked requests and page errors. It verifies revisiting the guide/download after the app controls the page, exact capture bytes and offline mission/note reload. The resulting WebM is 42 seconds at 480 × 960, with visible desktop/captured-base/no-live-API labels. Its checkpoint screenshots were visually inspected; full video review/publication still belongs to the user. An earlier incomplete recorder run is marked failed and must not be published.
 
-The physical phone, offline installation behavior and outdoor usefulness remain unverified. The user plans an actual outing tomorrow; no result is fabricated or scheduled automatically. The existing four-request/$0.003103 estimated reservation ledger is preserved; no additional model, database or telemetry request is authorized or made here. Training needs reviewed data and separate spending approval. Public demo upload, DEV publication and this increment's commit/push all wait for approval.
+The physical phone, offline installation behavior and outdoor usefulness remain unverified. The user plans an actual outing tomorrow; no result is fabricated or scheduled automatically. The existing four-request/$0.003103 estimated reservation ledger is preserved; no additional model, database or telemetry request is authorized or made here. Training needs reviewed data and separate spending approval. Public demo upload and DEV publication still wait for approval; this increment's commit/push was subsequently approved and completed as `07f19e2`.

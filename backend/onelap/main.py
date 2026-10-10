@@ -10,13 +10,13 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from .access import local_request
 from .budget import BudgetLedger
 from .config import ROOT, Settings
 from .errors import MissionError
 from .followup_routes import followup_routes
+from .frontend_files import FrontendFiles
 from .journal_config import JournalSettings
 from .journal_repository import AtlasJournal
 from .journal_routes import journal_routes
@@ -169,7 +169,7 @@ def create_app(
             raise RuntimeError("OneLap frontend build is missing")
         app.mount(
             "/",
-            StaticFiles(directory=settings.frontend_directory, html=True),
+            FrontendFiles(directory=settings.frontend_directory, html=True),
             name="frontend",
         )
     return app
