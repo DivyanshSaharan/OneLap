@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .access import local_request
 from .budget import BudgetLedger
@@ -148,4 +149,14 @@ def create_app(
     app.include_router(
         followup_routes(settings, journal_settings, journal, provider, authorize, limiter)
     )
+    if settings.serve_frontend:
+        if not settings.access_token:
+            raise RuntimeError("OneLap deployments require ONELAP_ACCESS_TOKEN")
+        if not settings.frontend_directory.is_dir():
+            raise RuntimeError("OneLap frontend build is missing")
+        app.mount(
+            "/",
+            StaticFiles(directory=settings.frontend_directory, html=True),
+            name="frontend",
+        )
     return app

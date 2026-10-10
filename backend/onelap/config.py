@@ -24,6 +24,8 @@ class Settings:
     budget_microdollars: int = 0
     max_model_requests: int = 20
     data_dir: Path = ROOT / ".data"
+    serve_frontend: bool = False
+    frontend_directory: Path = ROOT / "dist"
 
     def __post_init__(self):
         if self.access_token and not (32 <= len(self.access_token) <= 256):
@@ -59,6 +61,7 @@ class Settings:
             reflection_sharing_approved=boolean("ONELAP_REFLECTION_SHARING_APPROVED"),
             budget_microdollars=budget,
             max_model_requests=maximum,
+            serve_frontend=boolean("ONELAP_SERVE_FRONTEND"),
         )
 
     def disabled_reason(self) -> str | None:

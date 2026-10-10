@@ -12,7 +12,7 @@ After returning, save a short observation and feedback locally, including while 
 
 Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
-**Not yet implemented:** deployment, Sentry export, training or outdoor tests. There is no public deployment or claim of measured model accuracy.
+Render deployment packaging is now included, but no Render service has been created or deployed. Sentry export, training and outdoor tests remain unimplemented. There is no public deployment or claim of measured model accuracy.
 
 Model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. No live OneLap Tinker request or live Atlas journal operation has been made.
 
@@ -40,6 +40,16 @@ Start the local API:
 `GET /health` works without credentials. Local development needs no access token: API requests must come through loopback client/server addresses, approved localhost host/origin metadata and no forwarding headers. Keep this mode bound to `127.0.0.1`; do not expose or tunnel it. Setting an optional access token makes bearer authentication mandatory, with no local bypass. The service has no public Swagger/OpenAPI endpoints or cross-origin access enabled. This is a single-worker development service, not a production deployment.
 
 The local environment is isolated from GuardMate. Nothing from GuardMate's private state or model adapters is reused.
+
+## Render package (not activated)
+
+The root `Dockerfile` builds the React PWA and FastAPI API into one same-origin service. `render.yaml` selects Render's free web-service plan, disables preview environments and automatic deploys, and configures model spending, Atlas access and reflection sharing off. It asks for only `ONELAP_ACCESS_TOKEN`, which must be entered as a Render secret and never committed. The bundled server refuses to start without that token. There is no Tinker or MongoDB credential in the template.
+
+This is a single-person prototype, not multi-user authentication. The server token is shared by anyone you give it to, and all authorized clients address the same personal journal identity. Do not distribute the token or enable Atlas sharing for a public audience.
+
+The AI and Atlas gates must remain off on the included free plan. Render free services have an ephemeral filesystem and can spin down after inactivity; OneLap's conservative spend ledger is file-backed, so it would reset when that filesystem is discarded. Free services also cannot attach a persistent disk. Before any hosted model use, the project needs a durable spend ledger and a separately approved configuration. The free service may take about a minute to wake after 15 minutes idle. See [Render's free-service limits](https://render.com/docs/free), [persistent-disk behavior](https://render.com/docs/disks), and [Blueprint secret configuration](https://render.com/docs/blueprint-spec).
+
+No service, secret, or deployment has been created. This package alone is not evidence for the Best Use of Render category; that requires an actual deployment and a tested demo.
 
 ### Frontend
 
