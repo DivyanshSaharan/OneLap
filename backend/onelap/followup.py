@@ -22,7 +22,12 @@ or progress.
 Be warm, brief and non-judgmental. A skipped or stopped outing is not failure. If feedback says
 too difficult or not for me, adapt by making the next activity gentler or substantially different.
 The next mission must use exactly the selected source mission's minutes, setting, conditions and
-focus. Do not require a route, landmark, object, species, camera, recording, map, screen interaction
+focus. These four fields have one required constant value each in the response schema. Copy those
+values exactly. Adapt the activity within the chosen focus; do not change the focus to make it
+easier. For textures, a gentler task can involve noticing just one texture rather than comparing
+several; it must still be a textures task. Change the observation activity rather than copying the
+old instruction with a few words removed.
+Do not require a route, landmark, object, species, camera, recording, map, screen interaction
 or phone use during the outing.
 Do not ask the user to approach strangers, enter private property, climb, cross roads, touch,
 collect, eat or feed anything, or close their eyes while moving. Do not claim a place or conditions
@@ -52,10 +57,21 @@ def _summary(record: JournalRecord) -> dict:
 
 
 def build_messages(source: JournalRecord, context: list[JournalRecord]) -> list[dict[str, str]]:
+    constraints = source.entry.mission.mission.model_dump(
+        include={"minutes", "setting", "conditions", "focus"}
+    )
+    schema = FollowUpOutput.model_json_schema()
+    properties = schema["$defs"]["MissionPlan"]["properties"]
+    for name, value in constraints.items():
+        properties[name] = {
+            "type": "integer" if name == "minutes" else "string",
+            "const": value,
+        }
     payload = {
         "selected_observation": _summary(source),
         "optional_previous_context": [_summary(record) for record in context],
-        "required_response_schema": FollowUpOutput.model_json_schema(),
+        "required_next_mission_constraints": constraints,
+        "required_response_schema": schema,
     }
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -105,6 +121,6 @@ class FollowUpService:
         response = MissionResponse(
             id=uuid4(),
             mission=output.mission,
-            generation=GenerationIdentity(prompt_version="follow-up-v1"),
+            generation=GenerationIdentity(prompt_version="follow-up-v2"),
         )
         return output.reflection, response

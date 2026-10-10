@@ -116,12 +116,40 @@ def test_service_preserves_source_constraints_and_marks_followup(entry, request_
     reflection, response = FollowUpService(provider).generate(source, [])
 
     assert reflection == "You noticed a contrast in texture."
-    assert response.generation.prompt_version == "follow-up-v1"
+    assert response.generation.prompt_version == "follow-up-v2"
     assert response.mission.minutes == source.entry.mission.mission.minutes
     assert response.mission.setting == source.entry.mission.mission.setting
     assert response.mission.conditions == source.entry.mission.mission.conditions
     assert response.mission.focus == source.entry.mission.mission.focus
     assert provider.messages is not None
+
+
+@pytest.mark.parametrize("focus", ["textures", "light", "sounds", "general"])
+def test_followup_prompt_schema_locks_all_selected_constraints(entry, focus):
+    source = record(entry)
+    source.entry.mission.mission.focus = focus
+    payload = json.loads(build_messages(source, [])[1]["content"])
+    required = {
+        "minutes": source.entry.mission.mission.minutes,
+        "setting": source.entry.mission.mission.setting,
+        "conditions": source.entry.mission.mission.conditions,
+        "focus": focus,
+    }
+
+    assert payload["required_next_mission_constraints"] == required
+    properties = payload["required_response_schema"]["$defs"]["MissionPlan"]["properties"]
+    for name, value in required.items():
+        assert properties[name]["const"] == value
+        assert "enum" not in properties[name]
+
+
+def test_service_keeps_rejecting_the_focus_drift_observed_live(entry, request_data):
+    output = followup_output(MissionRequest(**request_data))
+    output["mission"]["focus"] = "light"
+    provider = TextProvider(json.dumps(output))
+
+    with pytest.raises(MissionError, match="mission_constraint_mismatch"):
+        FollowUpService(provider).generate(record(entry), [])
 
 
 def test_service_rejects_repeated_instruction(entry, request_data):
@@ -187,7 +215,7 @@ def test_api_reloads_selected_owner_records_before_sampling(
 
     assert response.status_code == 200, response.text
     assert response.json()["source_ids"] == [entry.id]
-    assert response.json()["mission"]["generation"]["prompt_version"] == "follow-up-v1"
+    assert response.json()["mission"]["generation"]["prompt_version"] == "follow-up-v2"
     assert journal.selections == [(OWNER, [entry.id])]
     assert len(runtime.samples) == 1
 

@@ -23,7 +23,7 @@ export interface MissionResponse {
     provider: 'tinker'
     model: 'Qwen/Qwen3.5-4B'
     target: 'base'
-    prompt_version: 'mission-v1' | 'follow-up-v1'
+    prompt_version: 'mission-v1' | 'follow-up-v1' | 'follow-up-v2'
   }
   safety_note: string
 }
@@ -101,7 +101,7 @@ export function parseMission(value: unknown): MissionResponse {
     generation.provider !== 'tinker' ||
     generation.model !== 'Qwen/Qwen3.5-4B' ||
     generation.target !== 'base' ||
-    !['mission-v1', 'follow-up-v1'].includes(
+    !['mission-v1', 'follow-up-v1', 'follow-up-v2'].includes(
       generation.prompt_version as string,
     ) ||
     !text(response.safety_note, 400)

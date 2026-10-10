@@ -8,13 +8,13 @@ One short outdoor observation mission, then put the phone away. OneLap is being 
 
 The backend implements a Tinker adapter for open-weight Qwen3.5-4B, structured mission validation, protected API access and conservative spending reservations. The React interface supports preparation, explicit hosted-data consent, loading/error states, automatic local mission saving and a minimal pocket view. Hosted requests are disabled by default.
 
-After returning, save a short observation and feedback locally, including while offline. The Atlas journal adapter supports explicit synchronization, stable-ID retries, owner isolation, pagination and deletion. An authenticated read-only Atlas ping passed; **journal operations have not been tested live yet**. An optional AI reflection/follow-up flow is implemented, but its server gate is off by default and the flow has not been tested against live Atlas or Qwen.
+After returning, save a short observation and feedback locally, including while offline. The Atlas journal adapter supports explicit synchronization, stable-ID retries, owner isolation, pagination and deletion. Live checks with an isolated fictional entry passed for upload, duplicate prevention, exact readback, owner rejection, deletion and replay rejection. A real Qwen mission was accepted, but the live follow-up changed the selected focus and was rejected. **A successful accepted live follow-up remains unverified.**
 
 Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
 Render deployment packaging is now included, but no Render service has been created or deployed. Sentry export, training and outdoor tests remain unimplemented. There is no public deployment or claim of measured model accuracy.
 
-Model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. No live OneLap Tinker request or live Atlas journal operation has been made.
+Automated model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. Three separately approved hosted requests were made on October 10 using synthetic data: two mission attempts and one follow-up. The revised follow-up prompt is locally tested, not yet live-tested. See [the live-test evidence](docs/live-smoke-2026-10-10.md) for failures and limitations.
 
 See [plan.md](plan.md) for the complete scope, schedule and approval rules.
 
@@ -111,11 +111,25 @@ Setup: [docs/atlas-setup.md](docs/atlas-setup.md). Implementation and verificati
 
 ### AI reflection and follow-up
 
-This flow is implemented but has **not** been live-tested. After explicitly loading the cloud journal, choose one completed observation with text and optionally up to two earlier completed notes. The page shows the exact outcome, feedback, observation and mission summary that the prompt will use. It shows the recording date for context, but dates and journal IDs are not included in the Qwen prompt. The browser sends selected IDs to the API; the server re-reads those exact, non-deleted records from the configured Atlas journal and verifies ownership before building one prompt.
+This flow reached live Atlas and Qwen in the fictional integration test, but the response changed `textures` to `light` and was rejected. The revised `follow-up-v2` prompt gives the four selected constraints explicit constant values in its supplied schema and asks for adaptation within the chosen focus. This is prompt guidance, not constrained decoding; application validation still rejects mismatches. The revision has not been tested live. Saved `follow-up-v1` missions remain readable.
+
+After explicitly loading the cloud journal, choose one completed observation with text and optionally up to two earlier completed notes. The page shows the exact outcome, feedback, observation and mission summary that the prompt will use. It shows the recording date for context, but dates and journal IDs are not included in the Qwen prompt. The browser sends selected IDs to the API; the server re-reads those exact, non-deleted records from the configured Atlas journal and verifies ownership before building one prompt.
 
 No notes are analyzed in the background. Before a request, the user must check server readiness and approve that specific sharing request. The server also requires `ONELAP_REFLECTION_SHARING_APPROVED=true`, the existing hosted-request/data-sharing/spending gates, and the Atlas journal gates. The new sharing gate defaults to `false`; keep all gates off until the data and cost boundary is deliberately approved. One generation uses the existing estimated-spend reservation and request limit. Selected observation text, feedback and mission summaries are sent to hosted Qwen through Tinker; check the provider's current retention and terms before enabling it. The checkbox is a UI disclosure, not a stored or server-verifiable consent receipt; the server gate is global, so keep the API private and loopback-only.
 
-The structured reflection and proposed mission are labelled model-generated. Application checks validate the mission schema, settings and restrictions, and reject an exact repeated instruction; these do not prove that the reflection is semantically grounded or that a mission is safe. Review the result before choosing **Use this next mission**. Acceptance saves the mission on this device; discarding it does not change the current mission. The response contains selected source IDs and the UI shows how many entries were used; those IDs are not yet persisted alongside the accepted mission. No live inference or journal write/read/delete smoke test has been performed for this flow.
+The structured reflection and proposed mission are labelled model-generated. Application checks validate the mission schema, settings and restrictions, and reject an exact repeated instruction; these do not prove that the reflection is semantically grounded or that a mission is safe. Review the result before choosing **Use this next mission**. Acceptance saves the mission on this device; discarding it does not change the current mission. The response contains selected source IDs and the UI shows how many entries were used; those IDs are not yet persisted alongside the accepted mission. The successful Atlas checks do not establish follow-up quality or outdoor usefulness.
+
+### Repeatable integration check
+
+After installing the development, journal and AI requirements, run the read-only local preflight:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\smoke.py
+```
+
+It reports configuration, dependency availability, credential presence and existing spend reservations, without contacting either provider or printing credential values. Exit 2 means live testing is blocked; with the default gates off, that is expected.
+
+Only with separately approved data sharing and model spending, `--live` runs a fictional mission/journal/follow-up workflow using the real configured services. It uses a fresh test journal, never reads personal entries, reuses the existing spend ledger, performs no automatic model retries, and verifies cleanup even after a follow-up failure. Ignored local reports include bounded raw **synthetic-test** replies to diagnose rejected output; this is not production prompt logging. `--resume` can reuse a matching, previously captured mission to avoid another mission request. See [docs/increment-6.md](docs/increment-6.md) for commands and boundaries. All saved hosted/Atlas gates remain off after the approved test.
 
 ## Configuration and approval
 
@@ -195,8 +209,8 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-261 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. The increment-4 additions cover selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates and later-context rejection. 123 frontend tests cover response validation, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
+282 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection and smoke-runner cleanup/resumption. 126 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
 
 Four automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, and offline observation capture/reload followed by explicit synchronization, a lost-reply retry without duplication, and confirmed deletion. These use labelled fictional fixtures and offline cloud doubles. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier and backend Ruff checks pass.
 
-All these automated checks use offline doubles or labelled fixtures; they do not measure Qwen's mission/reflection quality or prove live Atlas behavior. An authenticated read-only Atlas ping passed separately; journal write/read/delete smoke testing, inference, training comparison, physical-phone/installation checks and field results remain pending.
+The unit/browser suites use offline doubles or labelled fixtures; they do not measure Qwen's mission/reflection quality. Separate real-service testing verified one accepted mission and the isolated Atlas checks, but not an accepted follow-up. The total local reservation was $0.002278 across three requests, not an invoice amount. This tiny smoke test is not an accuracy evaluation. Training comparison, physical-phone/installation checks and field results remain pending.
