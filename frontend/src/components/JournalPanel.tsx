@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MissionResponse } from '../domain'
+import type { FollowUpOrigin } from '../storage'
 import { journalReasons } from '../journal/api'
 import type { Feedback, Outcome, Outing } from '../journal/domain'
 import type { useJournal } from '../journal/useJournal'
@@ -15,7 +16,10 @@ interface Props {
   connected: boolean
   online: boolean
   returning: number
-  onAccept: (mission: MissionResponse) => Promise<boolean>
+  onAccept: (
+    mission: MissionResponse,
+    origin: FollowUpOrigin,
+  ) => Promise<boolean>
 }
 export function JournalPanel({
   journal,

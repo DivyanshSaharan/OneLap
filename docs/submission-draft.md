@@ -30,6 +30,8 @@ The locally recorded walkthrough shows the real interface at phone width: review
 
 The capture is unmodified and came from an earlier synthetic integration test. Imported files remain labelled **model provenance not verified**. [Capture provenance and quality caveats](https://github.com/DivyanshSaharan/OneLap/blob/main/examples/README.md) and [the separate real-service test evidence](https://github.com/DivyanshSaharan/OneLap/blob/main/docs/live-smoke-2026-10-10.md) are in the repository.
 
+A separate fresh production-browser run also passed using real Qwen/Tinker and Atlas: generate a mission, save a fictional note offline, sync it, review and request a follow-up, delete the note, and reopen the next mission offline. [Its evidence](https://github.com/DivyanshSaharan/OneLap/blob/main/docs/live-browser-2026-10-10.md) is separate from the playback video; neither is an outdoor test.
+
 ## Code
 
 {% github https://github.com/DivyanshSaharan/OneLap %}
@@ -55,7 +57,9 @@ One failure mattered: an early follow-up changed the requested focus and the app
 
 That did not make the output perfect. The accepted mission still assumed night and particular objects, leaned on shadows, and described a proposed choice as already made. I kept those defects in the capture and documentation. Valid JSON and passing constraints are not the same as a grounded, useful outing.
 
-The four hosted samples were a small synthetic integration test, not an accuracy benchmark. Offline unit/browser tests cover state, storage, validation and sharing boundaries; they do not measure whether the missions are enjoyable.
+Two additional approved samples then passed a fresh hosted production-browser loop. The reflection addressed the fictional difficulty feedback and proposed noticing one surface instead of comparing two. The new text still named materials it did not know were present, and reused “read the list” wording. Both replies passed application checks; that is not perfect semantic grounding.
+
+There have been six hosted samples in these small synthetic integration checks, not an accuracy benchmark. Offline unit/browser tests cover state, storage, validation and sharing boundaries; they do not measure whether the missions are enjoyable. Accepted follow-ups now preserve local source references without copying the notes or automatically fetching them; that newer local feature was tested with fixtures after the live run.
 
 ## Why Does Open Innovation Matter?
 

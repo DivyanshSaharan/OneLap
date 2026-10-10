@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, it, vi } from 'vitest'
 import type { useFollowUp } from '../journal/useFollowUp'
-import { outing, owner } from '../journal/test-fixtures'
+import { outing, owner, otherOwner } from '../journal/test-fixtures'
 import { FollowUpPanel } from './FollowUpPanel'
 
 function followUpState() {
@@ -92,4 +92,32 @@ it('allows an explicit status check without selecting an observation', async () 
     screen.getByRole('button', { name: 'Check follow-up availability' }),
   )
   expect(followUp.check).toHaveBeenCalledOnce()
+})
+
+it('accepts the response with its original journal references, not the currently displayed owner', async () => {
+  const followUp = followUpState()
+  const origin = { owner_id: owner, source_ids: [outing.id] }
+  followUp.suggestion = {
+    reflection: 'Fixture reflection.',
+    mission: outing.mission,
+    source_ids: [outing.id],
+    origin,
+  }
+  const onAccept = vi.fn().mockResolvedValue(true)
+  render(
+    <FollowUpPanel
+      followUp={followUp}
+      entries={[outing]}
+      owner={otherOwner}
+      busy={false}
+      connected={false}
+      online={false}
+      onAccept={onAccept}
+    />,
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Use this next mission' }),
+  )
+  expect(onAccept).toHaveBeenCalledExactlyOnceWith(outing.mission, origin)
+  expect(followUp.accepted).toHaveBeenCalledOnce()
 })

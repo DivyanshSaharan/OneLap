@@ -356,6 +356,25 @@ async function main() {
           page.getByText(input.observation, { exact: true }),
         ).toHaveCount(0)
         assert.equal(boundary.modelAttempts, 2)
+        await page.getByText('How this was generated', { exact: true }).click()
+        const references = page.getByLabel('Saved follow-up source references')
+        await expect(references).toContainText(input.owner)
+        await expect(references).toContainText(boundary.entry.id)
+        await expect(references).toContainText(
+          'Based on 1 selected journal entry.',
+        )
+        await expect(references).not.toContainText(input.observation)
+        await page.setViewportSize({ width: 320, height: 844 })
+        assert.equal(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+          true,
+        )
+        await page.screenshot({
+          path: join(output, '04-offline-source-references.png'),
+          fullPage: true,
+        })
         assert.equal(report.blocked_requests, 0)
         assert.equal(report.page_errors, 0)
         const urls = await page.evaluate(async () => {

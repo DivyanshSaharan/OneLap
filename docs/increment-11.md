@@ -1,6 +1,6 @@
 # Increment 11: repeatable production-browser workflow
 
-Increment 10 was approved, committed and pushed as `07f19e2`. This increment is local and awaits fresh commit/push approval.
+Increment 10 was approved, committed and pushed as `07f19e2`. This increment was approved, committed and pushed as `f511d52` on October 10.
 
 ## One functionality
 
@@ -18,3 +18,5 @@ The first actual packaged-server fixture run exposed incorrect Windows registry 
 - Full suite passes: 386 backend tests and 158 frontend tests; 24 static-handoff checks and nine browser-boundary checks. Ruff, dependency checks, TypeScript/build/Prettier and the earlier five production browser cases also pass.
 
 No new Tinker, Atlas or Sentry request was made. Saved gates remain off and the real ledger remains four requests / $0.003103 estimated. A fresh live browser run, semantic review, physical-phone offline test and real outing are still pending. Do not use fixture screenshots or synthetic completion as outdoor evidence.
+
+The paragraph above records the implementation boundary. After this increment was pushed, the user separately approved two live samples. The fresh hosted browser loop passed with verified cleanup; see [the subsequent evidence](live-browser-2026-10-10.md). Those allowances are now used, and no physical-phone/outdoor/accuracy result is implied.

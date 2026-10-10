@@ -156,6 +156,72 @@ it('retains the imported label on restoring a previously saved file', async () =
   await screen.findByText('Imported file · model provenance not verified')
   expect(mocks.generate).not.toHaveBeenCalled()
 })
+
+it('shows saved follow-up references offline without reading notes or copying their text', async () => {
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+  const origin = {
+    owner_id: '11111111-1111-4111-8111-111111111111',
+    source_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  }
+  mocks.load.mockResolvedValue({
+    version: 1,
+    response: {
+      ...mission,
+      generation: { ...mission.generation, prompt_version: 'follow-up-v2' },
+    },
+    savedAt: new Date().toISOString(),
+    followUpOrigin: origin,
+  })
+  render(<App />)
+  await screen.findByRole('heading', { name: mission.mission.title })
+  await userEvent.click(screen.getByText('How this was generated'))
+  const references = screen.getByLabelText('Saved follow-up source references')
+  expect(references).toHaveTextContent(origin.owner_id)
+  expect(references).toHaveTextContent(origin.source_ids[0])
+  expect(references).toHaveTextContent(
+    'no copies of note text or the reflection',
+  )
+  expect(references).toHaveTextContent(
+    'Opening this section does not fetch them',
+  )
+  expect(mocks.getStatus).not.toHaveBeenCalled()
+  expect(mocks.generate).not.toHaveBeenCalled()
+  await userEvent.click(screen.getByRole('button', { name: /I’m heading out/ }))
+  expect(
+    screen.queryByLabelText('Saved follow-up source references'),
+  ).not.toBeInTheDocument()
+})
+
+it('does not invent source references for a legacy follow-up or an imported file', async () => {
+  const response = {
+    ...mission,
+    generation: { ...mission.generation, prompt_version: 'follow-up-v2' },
+  }
+  mocks.load.mockResolvedValue({
+    version: 1,
+    response,
+    savedAt: new Date().toISOString(),
+  })
+  const { unmount } = render(<App />)
+  await screen.findByRole('heading', { name: mission.mission.title })
+  await userEvent.click(screen.getByText('How this was generated'))
+  expect(
+    screen.getByText('Source references were not saved for this mission.'),
+  ).toBeInTheDocument()
+  unmount()
+  mocks.load.mockResolvedValue({
+    version: 1,
+    response,
+    savedAt: new Date().toISOString(),
+    source: 'imported',
+  })
+  render(<App />)
+  await screen.findByText('Imported file · model provenance not verified')
+  expect(
+    screen.queryByLabelText('Saved follow-up source references'),
+  ).not.toBeInTheDocument()
+  expect(mocks.generate).not.toHaveBeenCalled()
+})
 it('connects locally without a token and still requires hosted-selection consent', async () => {
   render(<App />)
   await waitFor(() =>

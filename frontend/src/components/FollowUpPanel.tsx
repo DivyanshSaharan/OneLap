@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { MissionResponse } from '../domain'
+import type { FollowUpOrigin } from '../storage'
 import { journalReasons } from '../journal/api'
 import type { useFollowUp } from '../journal/useFollowUp'
 import type { Outing } from '../journal/domain'
@@ -12,7 +13,10 @@ interface Props {
   busy: boolean
   connected: boolean
   online: boolean
-  onAccept: (mission: MissionResponse) => Promise<boolean>
+  onAccept: (
+    mission: MissionResponse,
+    origin: FollowUpOrigin,
+  ) => Promise<boolean>
 }
 
 function excerpt(value: string) {
@@ -259,7 +263,12 @@ export function FollowUpPanel({
                   className="primary-button"
                   disabled={busy}
                   onClick={async () => {
-                    if (await onAccept(followUp.suggestion!.mission))
+                    if (
+                      await onAccept(
+                        followUp.suggestion!.mission,
+                        followUp.suggestion!.origin,
+                      )
+                    )
                       followUp.accepted()
                   }}
                 >

@@ -1,14 +1,49 @@
-import { parseMission, type MissionResponse } from './domain'
+import { keys, object, parseMission, type MissionResponse } from './domain'
+import { identifier } from './journal/domain'
 
 const DATABASE = 'onelap-local'
 const STORE = 'missions'
 const KEY = 'current'
 export type MissionSource = 'generated' | 'imported'
+export interface FollowUpOrigin {
+  owner_id: string
+  source_ids: string[]
+}
+
+export function parseFollowUpOrigin(value: unknown): FollowUpOrigin {
+  const origin = object(value)
+  keys(origin, ['owner_id', 'source_ids'])
+  if (
+    !identifier(origin.owner_id) ||
+    !Array.isArray(origin.source_ids) ||
+    origin.source_ids.length < 1 ||
+    origin.source_ids.length > 3 ||
+    !origin.source_ids.every(identifier) ||
+    new Set(origin.source_ids).size !== origin.source_ids.length
+  )
+    throw new Error('saved_mission_invalid')
+  return { owner_id: origin.owner_id, source_ids: [...origin.source_ids] }
+}
+
+function validOriginForMission(
+  response: MissionResponse,
+  source: MissionSource,
+  origin: unknown,
+): FollowUpOrigin {
+  if (
+    source !== 'generated' ||
+    response.generation.prompt_version === 'mission-v1'
+  )
+    throw new Error('saved_mission_invalid')
+  return parseFollowUpOrigin(origin)
+}
+
 export interface SavedMission {
   version: 1
   response: MissionResponse
   savedAt: string
   source?: MissionSource
+  followUpOrigin?: FollowUpOrigin
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -55,8 +90,16 @@ export async function loadMission(): Promise<SavedMission | null> {
       !('response' in value) ||
       !('savedAt' in value) ||
       typeof value.savedAt !== 'string' ||
-      (Object.keys(value).length !== 3 &&
-        !(Object.keys(value).length === 4 && 'source' in value)) ||
+      Object.keys(value).some(
+        (key) =>
+          ![
+            'version',
+            'response',
+            'savedAt',
+            'source',
+            'followUpOrigin',
+          ].includes(key),
+      ) ||
       ('source' in value &&
         value.source !== 'generated' &&
         value.source !== 'imported') ||
@@ -64,11 +107,21 @@ export async function loadMission(): Promise<SavedMission | null> {
     ) {
       throw new Error('saved_mission_invalid')
     }
+    const response = parseMission(value.response)
     return {
       version: 1,
-      response: parseMission(value.response),
+      response,
       savedAt: value.savedAt,
       ...('source' in value ? { source: value.source as MissionSource } : {}),
+      ...('followUpOrigin' in value
+        ? {
+            followUpOrigin: validOriginForMission(
+              response,
+              'source' in value ? (value.source as MissionSource) : 'generated',
+              value.followUpOrigin,
+            ),
+          }
+        : {}),
     }
   } finally {
     database.close()
@@ -78,14 +131,25 @@ export async function loadMission(): Promise<SavedMission | null> {
 export async function saveMission(
   response: MissionResponse,
   source: MissionSource = 'generated',
+  followUpOrigin?: FollowUpOrigin,
 ): Promise<SavedMission> {
   if (source !== 'generated' && source !== 'imported')
     throw new Error('saved_mission_invalid')
+  const validated = parseMission(response)
   const record: SavedMission = {
     version: 1,
-    response: parseMission(response),
+    response: validated,
     savedAt: new Date().toISOString(),
     ...(source === 'imported' ? { source } : {}),
+    ...(followUpOrigin !== undefined
+      ? {
+          followUpOrigin: validOriginForMission(
+            validated,
+            source,
+            followUpOrigin,
+          ),
+        }
+      : {}),
   }
   await write(record)
   return record

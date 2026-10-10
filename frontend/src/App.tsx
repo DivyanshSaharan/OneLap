@@ -110,6 +110,7 @@ export default function App() {
             <MissionCard
               response={state.mission}
               imported={state.missionSource === 'imported'}
+              followUpOrigin={state.followUpOrigin}
               saved={state.saved}
               offlineReady={offlineReady}
               busy={busy}

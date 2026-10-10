@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createFollowUp, getFollowUpStatus, journalError } from './api'
 import type { FollowUpStatus, FollowUpSuggestion } from './domain'
+import type { FollowUpOrigin } from '../storage'
 
 export function useFollowUp(
   token: string,
@@ -8,7 +9,9 @@ export function useFollowUp(
   connected: boolean,
 ) {
   const [status, setStatus] = useState<FollowUpStatus | null>(null)
-  const [suggestion, setSuggestion] = useState<FollowUpSuggestion | null>(null)
+  const [suggestion, setSuggestion] = useState<
+    (FollowUpSuggestion & { origin: FollowUpOrigin }) | null
+  >(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -77,7 +80,10 @@ export function useFollowUp(
           currentConnection.current &&
           currentToken.current === token
         )
-          setSuggestion(result)
+          setSuggestion({
+            ...result,
+            origin: { owner_id: owner, source_ids: [...result.source_ids] },
+          })
       }),
     clear: () => {
       setSuggestion(null)

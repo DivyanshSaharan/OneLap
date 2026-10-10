@@ -26,7 +26,7 @@ Reports configuration, credential-presence booleans, existing estimated reservat
 
 ## Live run — fresh approval required
 
-**No new live browser run is authorized or recorded yet.** The earlier four approved request allowances are used. Before running, separately approve up to two **additional** Tinker samples and the fictional Atlas entry, with a cumulative estimated-spend cap. An invalid reply/timeout consumes its allowance; there is no automatic generation retry or fallback.
+**One separately approved live run now passed on October 10**, using exactly two additional samples and verified isolated Atlas cleanup. See [the evidence and limitations](live-browser-2026-10-10.md). All six request allowances are now used. Before another run, separately approve up to two **additional** Tinker samples and the fictional Atlas entry, with a cumulative estimated-spend cap. An invalid reply/timeout consumes its allowance; there is no automatic generation retry or fallback.
 
 The fixed input is 15 minutes / courtyard / daylight / textures. The only observation allowed is:
 
@@ -44,7 +44,7 @@ $env:ONELAP_REFLECTION_SHARING_APPROVED = 'true'
 $env:ONELAP_JOURNAL_ENABLED = 'true'
 $env:ONELAP_ATLAS_SHARING_APPROVED = 'true'
 $env:ONELAP_APPROVED_BUDGET_USD = '0.05'
-$env:ONELAP_MAX_MODEL_REQUESTS = '6' # Current real ledger: four used + two newly approved.
+$env:ONELAP_MAX_MODEL_REQUESTS = '<explicitly-approved-cumulative-request-limit>'
 .\.venv\Scripts\python.exe scripts\browser-smoke.py --live --approve-synthetic-sharing
 # Close this temporary shell after the run. Do not save these gates to .env.
 ```
@@ -60,3 +60,5 @@ The browser is restricted to this origin and the expected public files/API opera
 Cleanup runs after browser success, error or timeout: delete the known test entry, verify no active entries remain in that fresh journal, and reject replay with the original entry. A content-free deletion tombstone remains in Atlas; provider backups may retain prior content. Cleanup failures force overall failure and require attention—do not call them successful deletion. The runner closes its browser and server on ordinary failure paths, but cannot guarantee cleanup after forcibly killing the process or power loss. Preserve the report/owner/entry IDs for targeted recovery; never mass-delete journals.
 
 A passed fixture run proves the local harness and application plumbing. Only a separately approved passed live report can demonstrate the fresh hosted browser loop. Neither is a physical-phone test, an outdoor result, a semantic-quality score, a benchmark or fine-tuning evidence.
+
+The latest fixture walkthrough also verifies that accepted follow-up source references survive deletion of the source note and offline reload. That local feature was added after the first live run; the earlier report does not include this additional check.

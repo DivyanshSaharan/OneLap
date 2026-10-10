@@ -4,7 +4,9 @@ import type { MissionRequest, MissionResponse, ProviderStatus } from '../domain'
 import {
   clearMission,
   loadMission,
+  parseFollowUpOrigin,
   saveMission,
+  type FollowUpOrigin,
   type MissionSource,
 } from '../storage'
 
@@ -19,6 +21,9 @@ export function useMission() {
   const [status, setStatus] = useState<ProviderStatus | null>(null)
   const [mission, setMission] = useState<MissionResponse | null>(null)
   const [missionSource, setMissionSource] = useState<MissionSource>('generated')
+  const [followUpOrigin, setFollowUpOrigin] = useState<FollowUpOrigin | null>(
+    null,
+  )
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
@@ -31,6 +36,7 @@ export function useMission() {
         if (!cancelled && record) {
           setMission(record.response)
           setMissionSource(record.source ?? 'generated')
+          setFollowUpOrigin(record.followUpOrigin ?? null)
           setSaved(true)
         }
       })
@@ -79,9 +85,11 @@ export function useMission() {
   async function persist(
     response: MissionResponse,
     source: MissionSource = 'generated',
+    origin: FollowUpOrigin | null = null,
   ) {
     try {
-      if (source === 'imported') await saveMission(response, source)
+      if (origin) await saveMission(response, source, origin)
+      else if (source === 'imported') await saveMission(response, source)
       else await saveMission(response)
       if (alive.current) {
         setSaved(true)
@@ -100,11 +108,18 @@ export function useMission() {
   async function replaceMission(
     response: MissionResponse,
     source: MissionSource,
+    origin: FollowUpOrigin | null = null,
   ) {
     let accepted = false
     const acted = await act('saving', async () => {
+      let validatedOrigin: FollowUpOrigin | null = null
       try {
-        if (source === 'imported') await saveMission(response, source)
+        if (source === 'generated' && !origin)
+          throw new Error('saved_mission_invalid')
+        if (origin) {
+          validatedOrigin = parseFollowUpOrigin(origin)
+          await saveMission(response, source, validatedOrigin)
+        } else if (source === 'imported') await saveMission(response, source)
         else await saveMission(response)
       } catch {
         if (alive.current)
@@ -116,6 +131,7 @@ export function useMission() {
       if (alive.current) {
         setMission(response)
         setMissionSource(source)
+        setFollowUpOrigin(validatedOrigin)
         setSaved(true)
         setStorageError(null)
         setError(null)
@@ -131,6 +147,7 @@ export function useMission() {
     status,
     mission,
     missionSource,
+    followUpOrigin,
     saved,
     error,
     storageError,
@@ -160,17 +177,18 @@ export function useMission() {
         if (!alive.current) return
         setMission(result)
         setMissionSource('generated')
+        setFollowUpOrigin(null)
         setSaved(false)
         await persist(result)
       })
     },
-    adoptFollowUp: (response: MissionResponse) =>
-      replaceMission(response, 'generated'),
+    adoptFollowUp: (response: MissionResponse, origin: FollowUpOrigin) =>
+      replaceMission(response, 'generated', origin),
     importMission: (response: MissionResponse) =>
       replaceMission(response, 'imported'),
     saveAgain: () =>
       act('saving', async () => {
-        if (mission) await persist(mission, missionSource)
+        if (mission) await persist(mission, missionSource, followUpOrigin)
       }),
     clear: () =>
       act('clearing', async () => {
@@ -185,6 +203,7 @@ export function useMission() {
         if (alive.current) {
           setMission(null)
           setMissionSource('generated')
+          setFollowUpOrigin(null)
           setSaved(false)
           setStorageError(null)
         }
