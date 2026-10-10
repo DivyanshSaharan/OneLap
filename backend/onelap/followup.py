@@ -94,34 +94,41 @@ def _normalized(value: str) -> str:
     return re.sub(r"\W+", " ", value.casefold()).strip()
 
 
+def validate_output(
+    text: str, source: JournalRecord, context: list[JournalRecord]
+) -> FollowUpOutput:
+    mission = source.entry.mission.mission
+    request = MissionRequest(
+        minutes=mission.minutes,
+        setting=mission.setting,
+        conditions=mission.conditions,
+        focus=mission.focus,
+    )
+    output = _parse_output(text)
+    validate_plan(output.mission, request)
+    previous_text = {
+        _normalized(value)
+        for record in [source, *context]
+        for value in (
+            record.entry.mission.mission.title,
+            record.entry.mission.mission.instruction,
+        )
+    }
+    if _normalized(output.mission.instruction) in previous_text:
+        raise MissionError("followup_repeated_mission", 502)
+    return output
+
+
 class FollowUpService:
     def __init__(self, provider: TinkerProvider):
         self.provider = provider
         self.tracer = getattr(provider, "tracer", None) or Tracer()
 
     def generate(self, source: JournalRecord, context: list[JournalRecord]):
-        mission = source.entry.mission.mission
-        request = MissionRequest(
-            minutes=mission.minutes,
-            setting=mission.setting,
-            conditions=mission.conditions,
-            focus=mission.focus,
-        )
         messages = build_messages(source, context)
         text = self.provider.sample_text(messages)
         with self.tracer.span("followup_validation"):
-            output = _parse_output(text)
-            validate_plan(output.mission, request)
-            previous_text = {
-                _normalized(value)
-                for record in [source, *context]
-                for value in (
-                    record.entry.mission.mission.title,
-                    record.entry.mission.mission.instruction,
-                )
-            }
-            if _normalized(output.mission.instruction) in previous_text:
-                raise MissionError("followup_repeated_mission", 502)
+            output = validate_output(text, source, context)
         response = MissionResponse(
             id=uuid4(),
             mission=output.mission,

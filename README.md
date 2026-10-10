@@ -12,7 +12,7 @@ After returning, save a short observation and feedback locally, including while 
 
 Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
-Render deployment packaging is now included, but no Render service has been created or deployed. Optional metadata-only Sentry instrumentation is implemented and locally verified, with export disabled and no live dashboard test. Training and outdoor tests remain unimplemented. There is no public deployment or claim of measured model accuracy.
+Render deployment packaging is now included, but no Render service has been created or deployed. Optional metadata-only Sentry instrumentation is implemented and locally verified, with export disabled and no live dashboard test. An offline evaluation kit now prepares synthetic inputs and scores captured replies, but no hosted evaluation, training or outdoor test has happened. There is no public deployment or claim of measured model accuracy.
 
 Automated model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. Three separately approved hosted requests were made on October 10 using synthetic data: two mission attempts and one follow-up. The revised follow-up prompt is locally tested, not yet live-tested. See [the live-test evidence](docs/live-smoke-2026-10-10.md) for failures and limitations.
 
@@ -139,6 +139,19 @@ Optional Sentry spans distinguish selected-record retrieval, cold runtime setup,
 
 ## Configuration and approval
 
+### Offline evaluation
+
+The evaluation kit validates a synthetic family-split corpus, exports exact application prompts and replays captured replies through the same output checks. It separates application acceptance from human grounding, suitability, screen-light experience and feedback adaptation. Failures remain in denominators; missing measurements are not zero. Fixtures cannot support a model-comparison claim.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate.py validate
+.\.venv\Scripts\python.exe scripts\evaluate.py prepare --split dev --output .data\evaluation\dev-manifest.json
+```
+
+Both commands are offline: no `.env` reads, hosted SDK clients, data upload or credit use. Generated artifacts remain ignored and existing files are not overwritten. The 18 starter cases are assistant-authored and **unreviewed**, six each in train/dev/held-out families. They are not gold training completions, actual outings or accuracy evidence. A human-reviewed, frozen and expanded dataset plus separately approved genuine captures are needed before comparison. Training still waits for the complete base-model loop to work. See [commands and rubric](docs/evaluation.md) and [increment verification](docs/increment-8.md).
+
+### Runtime configuration
+
 Copy `.env.example` to the ignored `.env` file and edit it locally, without overwriting an existing file. Local use requires neither `ONELAP_OWNER_ID` nor `ONELAP_ACCESS_TOKEN`. For a future non-local deployment, use a random access token of at least 32 ASCII characters with no whitespace, never a fixture token. Never put API credentials or tokens in browser build-time environment variables, screenshots, commits or messages.
 
 For now, keep these defaults:
@@ -217,7 +230,7 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-308 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection, smoke cleanup/resumption and metadata-only tracing. The 26 tracing tests inspect actual SDK envelopes with an in-memory transport and forbid HTTP export. 126 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
+363 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection, smoke cleanup/resumption and metadata-only tracing. The 26 tracing tests inspect actual SDK envelopes with an in-memory transport and forbid HTTP export. The 55 evaluation tests cover corpus separation, every-case scoring, failure denominators, exact prompt/output hashes, human-review applicability, fixture exclusions, comparison matching and offline-only CLI behavior. The last verified frontend suite remains 126 tests covering response validation, old/new prompt-version compatibility, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent; frontend code is unchanged in increment 8.
 
 Four automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, and offline observation capture/reload followed by explicit synchronization, a lost-reply retry without duplication, and confirmed deletion. These use labelled fictional fixtures and offline cloud doubles. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier and backend Ruff checks pass.
 

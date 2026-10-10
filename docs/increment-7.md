@@ -1,6 +1,6 @@
 # Increment 7: private diagnostic tracing
 
-Implemented locally; not committed or pushed yet. Increment 6 was pushed as `05ec0a8`. This increment makes workflow timings and validation failures inspectable without exporting personal observations or model text.
+Committed and pushed as `c6db1c6` on October 10, 2026 with the user's approval. Increment 6 was pushed as `05ec0a8`. This increment makes workflow timings and validation failures inspectable without exporting personal observations or model text.
 
 ## Instrumentation
 
