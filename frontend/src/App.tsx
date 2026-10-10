@@ -4,6 +4,7 @@ import { EmptyMission } from './components/EmptyMission'
 import { JournalPanel } from './components/JournalPanel'
 import { MissionBuilder } from './components/MissionBuilder'
 import { MissionCard } from './components/MissionCard'
+import { MissionImport } from './components/MissionImport'
 import { Notice } from './components/Notice'
 import { PageHeader } from './components/PageHeader'
 import { useMission } from './hooks/useMission'
@@ -108,6 +109,7 @@ export default function App() {
           {state.mission && (
             <MissionCard
               response={state.mission}
+              imported={state.missionSource === 'imported'}
               saved={state.saved}
               offlineReady={offlineReady}
               busy={busy}
@@ -156,6 +158,13 @@ export default function App() {
               I’m back — record an observation
             </button>
           </div>
+        )}
+        {!pocket && (
+          <MissionImport
+            busy={busy}
+            hasMission={Boolean(state.mission)}
+            onImport={state.importMission}
+          />
         )}
         {!pocket && (
           <JournalPanel

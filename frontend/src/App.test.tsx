@@ -72,6 +72,90 @@ it('does not call the model, check status or create a fake mission on load', asy
     screen.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
 })
+it('imports offline only after review, saves unverified provenance and makes no API request', async () => {
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+  render(<App />)
+  await screen.findByText('Your outing starts here.')
+  fireEvent.click(screen.getByText('Use a captured mission · no model request'))
+  await waitFor(() =>
+    expect(screen.getByLabelText('Mission JSON file')).toBeEnabled(),
+  )
+  const file = new File([JSON.stringify(mission)], 'mission.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', {
+    value: async () => JSON.stringify(mission),
+  })
+  await userEvent.upload(screen.getByLabelText('Mission JSON file'), file)
+  await screen.findByText('FILE PREVIEW · NOT YET SAVED')
+  expect(mocks.save).not.toHaveBeenCalled()
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: /I reviewed this unverified file/ }),
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Save imported mission' }),
+  )
+  await screen.findByText('Imported file · model provenance not verified')
+  expect(mocks.save).toHaveBeenCalledExactlyOnceWith(mission, 'imported')
+  expect(mocks.getStatus).not.toHaveBeenCalled()
+  expect(mocks.generate).not.toHaveBeenCalled()
+  await userEvent.click(screen.getByRole('button', { name: /I’m heading out/ }))
+  expect(
+    screen.getByText('Imported file · model provenance not verified'),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByText('Use a captured mission · no model request'),
+  ).not.toBeInTheDocument()
+})
+
+it('keeps an existing mission when saving an imported file fails', async () => {
+  mocks.load.mockResolvedValue({
+    version: 1,
+    response: mission,
+    savedAt: new Date().toISOString(),
+  })
+  mocks.save.mockRejectedValue(new Error('disk-full'))
+  render(<App />)
+  await screen.findByRole('heading', { name: mission.mission.title })
+  fireEvent.click(screen.getByText('Use a captured mission · no model request'))
+  const replacement = {
+    ...mission,
+    mission: { ...mission.mission, title: 'Replacement' },
+  }
+  const file = new File([JSON.stringify(replacement)], 'mission.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', {
+    value: async () => JSON.stringify(replacement),
+  })
+  await userEvent.upload(screen.getByLabelText('Mission JSON file'), file)
+  await screen.findByRole('heading', { name: 'Replacement' })
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: /I reviewed this unverified file/ }),
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Save imported mission' }),
+  )
+  await screen.findByText(/The import was not saved/)
+  expect(
+    screen.getByRole('heading', { name: mission.mission.title }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByText('Imported file · model provenance not verified'),
+  ).not.toBeInTheDocument()
+})
+
+it('retains the imported label on restoring a previously saved file', async () => {
+  mocks.load.mockResolvedValue({
+    version: 1,
+    source: 'imported',
+    response: mission,
+    savedAt: new Date().toISOString(),
+  })
+  render(<App />)
+  await screen.findByText('Imported file · model provenance not verified')
+  expect(mocks.generate).not.toHaveBeenCalled()
+})
 it('connects locally without a token and still requires hosted-selection consent', async () => {
   render(<App />)
   await waitFor(() =>

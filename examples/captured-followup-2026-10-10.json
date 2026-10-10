@@ -1,0 +1,21 @@
+{
+  "id": "577256d1-be6e-4d0d-a63b-2ec1c48886a1",
+  "mission": {
+    "title": "Evening Courtyard Single Texture",
+    "instruction": "Walk slowly around the courtyard at night. Focus your attention on only one type of surface, such as the steps or the walls. Notice how the light and shadows change its appearance without trying to compare it to anything else.",
+    "remember": "You chose to focus on a single texture instead of comparing two.",
+    "minutes": 15,
+    "setting": "courtyard",
+    "conditions": "evening",
+    "focus": "textures",
+    "requires_camera": false,
+    "phone_use": "none_during_outing"
+  },
+  "generation": {
+    "provider": "tinker",
+    "model": "Qwen/Qwen3.5-4B",
+    "target": "base",
+    "prompt_version": "follow-up-v2"
+  },
+  "safety_note": "Stay within a familiar area you choose. Skip or stop if conditions are unsuitable. This mission does not assess safety or provide navigation."
+}

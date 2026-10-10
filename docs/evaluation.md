@@ -1,6 +1,6 @@
 # Offline evaluation kit
 
-This kit prepares inputs and replays captured replies. It **never calls Tinker, Atlas or Sentry**, loads `.env`, trains a model, changes approval gates or resets the spend ledger. No hosted evaluation or training has happened. The revised follow-up still needs an accepted live result before a training pilot.
+This kit prepares inputs and replays captured replies. It **never calls Tinker, Atlas or Sentry**, loads `.env`, trains a model, changes approval gates or resets the spend ledger. No hosted evaluation or training has happened. A separately approved resumed integration check accepted the revised follow-up; its semantic quality remains imperfect. A training pilot still needs reviewed data and an approved budget.
 
 ## Starter dataset, not training data or field evidence
 
@@ -27,7 +27,7 @@ Save only the `run_template` object as a separate run JSON file when filling it.
 
 Record the actual model, base/adapter target, exact adapter checkpoint path and training-data digest where applicable. Preserve the manifest's dataset/method/input hashes. Record actual decoding and execution conditions: serial requests, shared client or cold client per case, Python/Tinker/tokenizer-library versions. `latency_ms` is wall time for the provider call including any setup, not model-only latency or UI/network round-trip latency. Mark unavailable measurements `null`, not zero. Count actual returned token IDs; do not estimate tokens from characters. `estimated_reserved_usd` is the per-request ledger reservation, never actual billing. A timed-out request can still incur a charge.
 
-This increment has **no paid capture runner**. Capturing a baseline, repeating live integration, training an adapter or exporting telemetry needs separate approval with data, request and spending boundaries. The previous three-request smoke allowance is used up. Do not bypass gates or reset counters to create a bundle.
+This increment has **no paid capture runner**. Capturing a baseline, repeating live integration, training an adapter or exporting telemetry needs separate approval with data, request and spending boundaries. All four separately approved smoke requests have been used. Do not bypass gates or reset counters to create a bundle.
 
 Replay an existing bundle locally:
 

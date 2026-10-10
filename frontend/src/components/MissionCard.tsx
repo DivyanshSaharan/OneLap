@@ -3,6 +3,7 @@ import { settingLabels, type MissionResponse } from '../domain'
 
 interface Props {
   response: MissionResponse
+  imported?: boolean
   saved: boolean
   offlineReady: boolean
   busy: boolean
@@ -15,6 +16,7 @@ interface Props {
 
 export const MissionCard = memo(function MissionCard({
   response,
+  imported = false,
   saved,
   offlineReady,
   busy,
@@ -46,6 +48,11 @@ export const MissionCard = memo(function MissionCard({
       <h2 id="mission-title" ref={heading} tabIndex={-1}>
         {mission.title}
       </h2>
+      {imported && (
+        <p className="import-provenance">
+          Imported file · model provenance not verified
+        </p>
+      )}
       <p className="mission-instruction">{mission.instruction}</p>
       <div className="reflection">
         <span className="eyebrow">BRING BACK ONE THOUGHT</span>
@@ -82,6 +89,7 @@ export const MissionCard = memo(function MissionCard({
         <details className="model-details">
           <summary>How this was generated</summary>
           <p className="small">
+            {imported && 'The imported file claims: '}
             {response.generation.model} · {response.generation.target} ·{' '}
             {response.generation.provider}. Saved locally; not a verified
             account of your surroundings.

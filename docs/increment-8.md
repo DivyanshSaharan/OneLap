@@ -1,6 +1,6 @@
 # Increment 8: offline evaluation preparation and replay
 
-Implemented locally; awaiting approval before its own commit/push. Increment 7 was committed and pushed as `c6db1c6` on October 10, 2026.
+Committed and pushed as `953a4bf` on October 10, 2026 with the user's approval. Increment 7 was committed and pushed as `c6db1c6`.
 
 ## Functionality
 
@@ -20,4 +20,4 @@ Frontend code is unchanged. Its last verified suite remains 126 tests and four f
 
 ## Remaining boundaries
 
-An accepted live `follow-up-v2` result is still pending. That live test requires new approval; the earlier allowance is exhausted. Training stays deferred until the central base loop works, data is reviewed and a separate training/evaluation budget is approved. This increment does not establish model accuracy or Tinker prize improvement. Physical-phone, outdoor evidence and submission assets remain pending.
+At this increment's verification boundary an accepted live `follow-up-v2` was pending. A separately approved single follow-up passed during increment 9; see [the updated evidence](live-smoke-2026-10-10.md). Training still requires reviewed data and a separate training/evaluation budget. This evaluation-tooling increment establishes neither model accuracy nor Tinker prize improvement. Physical-phone, outdoor evidence and submission assets remain pending.

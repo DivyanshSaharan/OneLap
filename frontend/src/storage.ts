@@ -3,10 +3,12 @@ import { parseMission, type MissionResponse } from './domain'
 const DATABASE = 'onelap-local'
 const STORE = 'missions'
 const KEY = 'current'
+export type MissionSource = 'generated' | 'imported'
 export interface SavedMission {
   version: 1
   response: MissionResponse
   savedAt: string
+  source?: MissionSource
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -53,7 +55,11 @@ export async function loadMission(): Promise<SavedMission | null> {
       !('response' in value) ||
       !('savedAt' in value) ||
       typeof value.savedAt !== 'string' ||
-      Object.keys(value).length !== 3 ||
+      (Object.keys(value).length !== 3 &&
+        !(Object.keys(value).length === 4 && 'source' in value)) ||
+      ('source' in value &&
+        value.source !== 'generated' &&
+        value.source !== 'imported') ||
       !Number.isFinite(Date.parse(value.savedAt))
     ) {
       throw new Error('saved_mission_invalid')
@@ -62,6 +68,7 @@ export async function loadMission(): Promise<SavedMission | null> {
       version: 1,
       response: parseMission(value.response),
       savedAt: value.savedAt,
+      ...('source' in value ? { source: value.source as MissionSource } : {}),
     }
   } finally {
     database.close()
@@ -70,11 +77,15 @@ export async function loadMission(): Promise<SavedMission | null> {
 
 export async function saveMission(
   response: MissionResponse,
+  source: MissionSource = 'generated',
 ): Promise<SavedMission> {
+  if (source !== 'generated' && source !== 'imported')
+    throw new Error('saved_mission_invalid')
   const record: SavedMission = {
     version: 1,
     response: parseMission(response),
     savedAt: new Date().toISOString(),
+    ...(source === 'imported' ? { source } : {}),
   }
   await write(record)
   return record

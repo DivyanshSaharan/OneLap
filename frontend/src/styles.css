@@ -822,6 +822,48 @@ select {
   overflow: hidden;
   clip-path: inset(50%);
 }
+.mission-import {
+  margin-top: 24px;
+  padding: 22px;
+}
+.mission-import > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.import-file {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.import-file input {
+  width: 100%;
+  min-width: 0;
+}
+.import-preview {
+  background: #f3f5ec;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 18px;
+  overflow-wrap: anywhere;
+}
+.import-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.import-consent input {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+.import-error {
+  color: #873c2f;
+}
+.import-provenance {
+  font-size: 12px;
+  color: #73542e;
+}
 @media (max-width: 760px) {
   .journal {
     padding: 23px;

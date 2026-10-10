@@ -8,6 +8,78 @@ const fixture = {
 }
 const token = 'fictional-browser-test-token-only'
 
+test('imports a reviewed local fixture offline and retains its unverified label on reload', async ({
+  page,
+  context,
+}) => {
+  const requests = await fixtureApi(context)
+  await page.goto('/')
+  await expect(
+    page.getByText(
+      'Offline app shell cached. Save a mission before disconnecting.',
+    ),
+  ).toBeVisible()
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+  await expect(page.getByLabel('Mission JSON file')).toBeEnabled()
+  await context.setOffline(true)
+  await page
+    .getByText('Use a captured mission · no model request', { exact: true })
+    .click()
+  await page.getByLabel('Mission JSON file').setInputFiles({
+    name: 'bad.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"private":"test-sentinel"}'),
+  })
+  await expect(page.getByRole('alert')).toContainText('could not be opened')
+  await expect(page.getByText('test-sentinel')).toHaveCount(0)
+  const imported = {
+    ...fixture,
+    mission: {
+      ...fixture.mission,
+      title: 'Imported E2E fixture — not model output',
+    },
+  }
+  await page.getByLabel('Mission JSON file').setInputFiles({
+    name: 'captured.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(imported)),
+  })
+  await expect(page.getByText('FILE PREVIEW · NOT YET SAVED')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Save imported mission' }),
+  ).toBeDisabled()
+  await page
+    .getByRole('checkbox', { name: /I reviewed this unverified file/ })
+    .check()
+  await page.getByRole('button', { name: 'Save imported mission' }).click()
+  await expect(
+    page.getByText('Imported file · model provenance not verified'),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Saved on this device · ready to reopen offline'),
+  ).toBeVisible()
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true)
+  }
+  await page.reload()
+  await expect(
+    page.getByRole('heading', { name: imported.mission.title }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Imported file · model provenance not verified'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: /I’m heading out/ }).click()
+  await expect(
+    page.getByText('Imported file · model provenance not verified'),
+  ).toBeVisible()
+  expect(requests).toHaveLength(0)
+})
+
 async function fixtureApi(
   context: BrowserContext,
   enabled = true,

@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { explain, generateMission, getStatus } from '../api'
 import type { MissionRequest, MissionResponse, ProviderStatus } from '../domain'
-import { clearMission, loadMission, saveMission } from '../storage'
+import {
+  clearMission,
+  loadMission,
+  saveMission,
+  type MissionSource,
+} from '../storage'
 
 export function useMission() {
   const [restoring, setRestoring] = useState(true)
@@ -13,6 +18,7 @@ export function useMission() {
   const [token, setToken] = useState('')
   const [status, setStatus] = useState<ProviderStatus | null>(null)
   const [mission, setMission] = useState<MissionResponse | null>(null)
+  const [missionSource, setMissionSource] = useState<MissionSource>('generated')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
@@ -24,6 +30,7 @@ export function useMission() {
       .then((record) => {
         if (!cancelled && record) {
           setMission(record.response)
+          setMissionSource(record.source ?? 'generated')
           setSaved(true)
         }
       })
@@ -69,9 +76,13 @@ export function useMission() {
     return succeeded
   }
 
-  async function persist(response: MissionResponse) {
+  async function persist(
+    response: MissionResponse,
+    source: MissionSource = 'generated',
+  ) {
     try {
-      await saveMission(response)
+      if (source === 'imported') await saveMission(response, source)
+      else await saveMission(response)
       if (alive.current) {
         setSaved(true)
         setStorageError(null)
@@ -86,11 +97,40 @@ export function useMission() {
     }
   }
 
+  async function replaceMission(
+    response: MissionResponse,
+    source: MissionSource,
+  ) {
+    let accepted = false
+    const acted = await act('saving', async () => {
+      try {
+        if (source === 'imported') await saveMission(response, source)
+        else await saveMission(response)
+      } catch {
+        if (alive.current)
+          setStorageError(
+            'The selected mission could not be saved. Your current mission was kept.',
+          )
+        return
+      }
+      if (alive.current) {
+        setMission(response)
+        setMissionSource(source)
+        setSaved(true)
+        setStorageError(null)
+        setError(null)
+        accepted = true
+      }
+    })
+    return acted && accepted
+  }
+
   return {
     restoring,
     busy,
     status,
     mission,
+    missionSource,
     saved,
     error,
     storageError,
@@ -119,35 +159,18 @@ export function useMission() {
         const result = await generateMission(token, input)
         if (!alive.current) return
         setMission(result)
+        setMissionSource('generated')
         setSaved(false)
         await persist(result)
       })
     },
-    adoptFollowUp: async (response: MissionResponse) => {
-      let savedSuggestion = false
-      const acted = await act('saving', async () => {
-        try {
-          await saveMission(response)
-        } catch {
-          if (alive.current)
-            setStorageError(
-              'The suggested mission could not be saved. Your current mission was kept.',
-            )
-          return
-        }
-        if (alive.current) {
-          setMission(response)
-          setSaved(true)
-          setStorageError(null)
-          setError(null)
-          savedSuggestion = true
-        }
-      })
-      return acted && savedSuggestion
-    },
+    adoptFollowUp: (response: MissionResponse) =>
+      replaceMission(response, 'generated'),
+    importMission: (response: MissionResponse) =>
+      replaceMission(response, 'imported'),
     saveAgain: () =>
       act('saving', async () => {
-        if (mission) await persist(mission)
+        if (mission) await persist(mission, missionSource)
       }),
     clear: () =>
       act('clearing', async () => {
@@ -161,6 +184,7 @@ export function useMission() {
         }
         if (alive.current) {
           setMission(null)
+          setMissionSource('generated')
           setSaved(false)
           setStorageError(null)
         }

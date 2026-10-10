@@ -1,5 +1,10 @@
 import { beforeEach, expect, it } from 'vitest'
-import { clearMission, loadMission, saveMission } from './storage'
+import {
+  clearMission,
+  loadMission,
+  saveMission,
+  type MissionSource,
+} from './storage'
 import { mission } from './test/fixtures'
 
 beforeEach(async () => {
@@ -8,6 +13,20 @@ beforeEach(async () => {
 
 it('loads no mission on an empty device', async () =>
   expect(await loadMission()).toBeNull())
+it('preserves imported provenance across reload without changing old record shape', async () => {
+  const imported = await saveMission(mission, 'imported')
+  expect(imported.source).toBe('imported')
+  expect(await loadMission()).toEqual(imported)
+  await saveMission(mission)
+  expect((await loadMission())?.source).toBeUndefined()
+})
+it('rejects an invalid source before changing a saved mission', async () => {
+  await saveMission(mission, 'imported')
+  await expect(
+    saveMission(mission, 'verified' as MissionSource),
+  ).rejects.toThrow()
+  expect((await loadMission())?.source).toBe('imported')
+})
 it('persists a validated mission and timestamp', async () => {
   const record = await saveMission(mission)
   expect(await loadMission()).toEqual(record)
