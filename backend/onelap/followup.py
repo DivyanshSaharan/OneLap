@@ -10,6 +10,7 @@ from .models import GenerationIdentity, MissionRequest, MissionResponse
 from .policy import validate_plan
 from .provider import TinkerProvider
 from .provider_json import unique_keys
+from .tracing import Tracer
 
 SYSTEM_PROMPT = """You are OneLap, reflecting on one user-reported outdoor observation and
 suggesting one next short observation mission.
@@ -96,6 +97,7 @@ def _normalized(value: str) -> str:
 class FollowUpService:
     def __init__(self, provider: TinkerProvider):
         self.provider = provider
+        self.tracer = getattr(provider, "tracer", None) or Tracer()
 
     def generate(self, source: JournalRecord, context: list[JournalRecord]):
         mission = source.entry.mission.mission
@@ -106,18 +108,20 @@ class FollowUpService:
             focus=mission.focus,
         )
         messages = build_messages(source, context)
-        output = _parse_output(self.provider.sample_text(messages))
-        validate_plan(output.mission, request)
-        previous_text = {
-            _normalized(value)
-            for record in [source, *context]
-            for value in (
-                record.entry.mission.mission.title,
-                record.entry.mission.mission.instruction,
-            )
-        }
-        if _normalized(output.mission.instruction) in previous_text:
-            raise MissionError("followup_repeated_mission", 502)
+        text = self.provider.sample_text(messages)
+        with self.tracer.span("followup_validation"):
+            output = _parse_output(text)
+            validate_plan(output.mission, request)
+            previous_text = {
+                _normalized(value)
+                for record in [source, *context]
+                for value in (
+                    record.entry.mission.mission.title,
+                    record.entry.mission.mission.instruction,
+                )
+            }
+            if _normalized(output.mission.instruction) in previous_text:
+                raise MissionError("followup_repeated_mission", 502)
         response = MissionResponse(
             id=uuid4(),
             mission=output.mission,

@@ -12,7 +12,7 @@ After returning, save a short observation and feedback locally, including while 
 
 Production builds cache the public app shell with a service worker and store one mission in IndexedDB. Offline reload is verified in a desktop browser at phone width, **not yet on a physical phone**. Installation prompts have not been verified.
 
-Render deployment packaging is now included, but no Render service has been created or deployed. Sentry export, training and outdoor tests remain unimplemented. There is no public deployment or claim of measured model accuracy.
+Render deployment packaging is now included, but no Render service has been created or deployed. Optional metadata-only Sentry instrumentation is implemented and locally verified, with export disabled and no live dashboard test. Training and outdoor tests remain unimplemented. There is no public deployment or claim of measured model accuracy.
 
 Automated model tests use explicit offline doubles; browser tests intercept private API requests with a clearly labelled fixture. The application has no fake-model fallback. Three separately approved hosted requests were made on October 10 using synthetic data: two mission attempts and one follow-up. The revised follow-up prompt is locally tested, not yet live-tested. See [the live-test evidence](docs/live-smoke-2026-10-10.md) for failures and limitations.
 
@@ -131,6 +131,12 @@ It reports configuration, dependency availability, credential presence and exist
 
 Only with separately approved data sharing and model spending, `--live` runs a fictional mission/journal/follow-up workflow using the real configured services. It uses a fresh test journal, never reads personal entries, reuses the existing spend ledger, performs no automatic model retries, and verifies cleanup even after a follow-up failure. Ignored local reports include bounded raw **synthetic-test** replies to diagnose rejected output; this is not production prompt logging. `--resume` can reuse a matching, previously captured mission to avoid another mission request. See [docs/increment-6.md](docs/increment-6.md) for commands and boundaries. All saved hosted/Atlas gates remain off after the approved test.
 
+### Private diagnostic tracing
+
+Optional Sentry spans distinguish selected-record retrieval, cold runtime setup, encoding, model sampling, estimated-spend admission and validation failures. Journal write/read/delete operations have separate timing spans. Only bounded counts, anonymous trace IDs, timestamps, fixed labels and known error codes pass the final payload allowlist—not observations, model text, record IDs, credentials or exception messages.
+
+`ONELAP_TRACING_ENABLED=false` and `ONELAP_TRACE_SHARING_APPROVED=false` are the defaults; `ONELAP_SENTRY_DSN` alone does not enable export. Automatic integrations, logs, exception events, profiles, sessions and trace propagation are disabled. The real SDK's serialized envelopes were inspected using a local collector; no Sentry upload or dashboard result is claimed. Enabling tracing does not change AI/Atlas approval. See [setup](docs/tracing-setup.md) and [implementation/privacy tests](docs/increment-7.md).
+
 ## Configuration and approval
 
 Copy `.env.example` to the ignored `.env` file and edit it locally, without overwriting an existing file. Local use requires neither `ONELAP_OWNER_ID` nor `ONELAP_ACCESS_TOKEN`. For a future non-local deployment, use a random access token of at least 32 ASCII characters with no whitespace, never a fixture token. Never put API credentials or tokens in browser build-time environment variables, screenshots, commits or messages.
@@ -144,6 +150,8 @@ ONELAP_REFLECTION_SHARING_APPROVED=false
 ONELAP_APPROVED_BUDGET_USD=0
 ONELAP_JOURNAL_ENABLED=false
 ONELAP_ATLAS_SHARING_APPROVED=false
+ONELAP_TRACING_ENABLED=false
+ONELAP_TRACE_SHARING_APPROVED=false
 ```
 
 Only after agreeing the hosted-data boundary and spending cap should the owner install `backend/requirements-ai.txt`, set `TINKER_API_KEY` privately, and explicitly enable all approval settings. Installing the AI dependencies may download software, but the service only creates the hosted sampling client during an enabled generation request. Health/status checks do not initialize it.
@@ -209,7 +217,7 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-282 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection and smoke-runner cleanup/resumption. 126 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
+308 offline backend tests cover schemas, policy, access/errors, loopback and cross-site boundaries, admission, SDK parameters, timeouts, persistent/concurrent ledger updates, Atlas approval gates, owner isolation, idempotency, pagination and deletion races. They also cover deployment protection, selected-record ownership/order, prompt boundaries, follow-up constraints/repetition, route approval gates, later-context rejection, smoke cleanup/resumption and metadata-only tracing. The 26 tracing tests inspect actual SDK envelopes with an in-memory transport and forbid HTTP export. 126 frontend tests cover response validation, old/new prompt-version compatibility, optional credentials, token-free connection, local saving, IndexedDB migration, journal consent/ownership, failure recovery, concurrency, service-worker lifecycle/cache boundaries and follow-up selection/consent.
 
 Four automated browser checks passed using a production build and installed Edge: offline mission reload, layouts at 320/390/1280 pixels, blocked generation when the provider is disabled, and offline observation capture/reload followed by explicit synchronization, a lost-reply retry without duplication, and confirmed deletion. These use labelled fictional fixtures and offline cloud doubles. The real disabled API/proxy setup-error path was checked previously. Type checking, production build, Prettier and backend Ruff checks pass.
 

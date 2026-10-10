@@ -24,6 +24,7 @@ from .models import MissionRequest, MissionResponse, ProviderStatus
 from .provider import TinkerProvider
 from .provider_json import unique_keys
 from .service import MissionService
+from .tracing import Tracer, TracingSettings
 
 MAX_BODY_BYTES = 8192
 
@@ -49,11 +50,14 @@ def create_app(
     provider: TinkerProvider | None = None,
     journal_settings: JournalSettings | None = None,
     journal: AtlasJournal | None = None,
+    tracer: Tracer | None = None,
 ) -> FastAPI:
     if settings is None:
         load_dotenv(ROOT / ".env", override=False)
         settings = Settings.from_environment()
         journal_settings = journal_settings or JournalSettings.from_environment()
+        tracer = tracer or Tracer(TracingSettings.from_environment())
+    tracer = tracer or Tracer()
     journal_settings = journal_settings or JournalSettings()
     if journal is not None and journal.settings != journal_settings:
         raise ValueError("Journal and application settings must match")
@@ -61,13 +65,19 @@ def create_app(
     if provider is not None and provider.settings != settings:
         raise ValueError("Provider and application settings must match")
     provider = provider or TinkerProvider(settings, BudgetLedger(settings.data_dir))
+    provider.tracer = tracer
     service = MissionService(provider)
     limiter = RequestLimiter()
 
     @asynccontextmanager
     async def lifespan(_app):
-        yield
-        journal.close()
+        try:
+            yield
+        finally:
+            try:
+                journal.close()
+            finally:
+                tracer.close()
 
     app = FastAPI(
         title="OneLap",
@@ -142,10 +152,13 @@ def create_app(
 
     @app.post("/api/missions", dependencies=[Depends(authorize)], status_code=201)
     def generate(request: MissionRequest) -> MissionResponse:
-        limiter.admit()
-        return service.generate(request)
+        with tracer.run("mission", prompt_version="mission-v1"):
+            limiter.admit()
+            return service.generate(request)
 
-    app.include_router(journal_routes(journal_settings, journal, authorize, RequestLimiter(30)))
+    app.include_router(
+        journal_routes(journal_settings, journal, authorize, RequestLimiter(30), tracer)
+    )
     app.include_router(
         followup_routes(settings, journal_settings, journal, provider, authorize, limiter)
     )

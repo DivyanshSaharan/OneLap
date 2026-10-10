@@ -27,3 +27,7 @@ services:
         value: 'false'
       - key: ONELAP_ATLAS_SHARING_APPROVED
         value: 'false'
+      - key: ONELAP_TRACING_ENABLED
+        value: 'false'
+      - key: ONELAP_TRACE_SHARING_APPROVED
+        value: 'false'

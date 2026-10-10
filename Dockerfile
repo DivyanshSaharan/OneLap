@@ -15,10 +15,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY backend/requirements.txt backend/requirements-journal.txt backend/requirements-ai.txt ./backend/
+COPY backend/requirements.txt backend/requirements-journal.txt backend/requirements-ai.txt backend/requirements-tracing.txt ./backend/
 RUN python -m pip install --no-cache-dir --disable-pip-version-check \
     -r backend/requirements-journal.txt \
-    -r backend/requirements-ai.txt
+    -r backend/requirements-ai.txt \
+    -r backend/requirements-tracing.txt
 
 COPY backend/onelap ./backend/onelap
 COPY --from=frontend /build/dist ./dist

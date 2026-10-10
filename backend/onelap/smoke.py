@@ -33,6 +33,10 @@ class CapturedRuntime:
     def encode(self, messages: list[dict[str, str]]) -> list[int]:
         return self.runtime.encode(messages)
 
+    @property
+    def output_token_count(self):
+        return getattr(self.runtime, "output_token_count", None)
+
     def sample(self, tokens: list[int]) -> str:
         text = self.runtime.sample(tokens)
         self.outputs.append(

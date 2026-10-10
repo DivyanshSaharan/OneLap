@@ -189,6 +189,7 @@ def test_sdk_adapter_contract_without_network(monkeypatch):
     runtime = TinkerRuntime("fictional-test-key")
     tokens = runtime.encode([{"role": "user", "content": "fictional"}])
     assert runtime.sample(tokens) == "fixture output"
+    assert runtime.output_token_count == 2
     assert calls["service"] == {"api_key": "fictional-test-key"}
     assert calls["client"]["base_model"] == MODEL
     assert calls["client"]["retry_config"]["enable_retry_logic"] is False

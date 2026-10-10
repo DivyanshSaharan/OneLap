@@ -11,6 +11,7 @@ from .config import MODEL, Settings
 from .errors import MissionError
 from .models import MissionPlan, ProviderStatus
 from .provider_json import unique_keys
+from .tracing import Tracer
 
 MAX_INPUT_TOKENS = 4096
 MAX_OUTPUT_TOKENS = 512
@@ -45,6 +46,7 @@ class TinkerRuntime:
         if self.client.get_base_model() != MODEL:
             raise MissionError("provider_model_mismatch")
         self.tokenizer = self.client.get_tokenizer()
+        self.output_token_count: int | None = None
 
     def encode(self, messages: list[dict[str, str]]) -> list[int]:
         return self.tokenizer.apply_chat_template(
@@ -58,6 +60,7 @@ class TinkerRuntime:
     def sample(self, tokens: list[int]) -> str:
         from tinker import types
 
+        self.output_token_count = None
         result = self.client.sample(
             prompt=types.ModelInput.from_ints(tokens),
             num_samples=1,
@@ -67,7 +70,9 @@ class TinkerRuntime:
                 stop=["<|im_end|>"],
             ),
         ).result(timeout=45)
-        return self.tokenizer.decode(result.sequences[0].tokens, skip_special_tokens=True)
+        output_tokens = result.sequences[0].tokens
+        self.output_token_count = len(output_tokens)
+        return self.tokenizer.decode(output_tokens, skip_special_tokens=True)
 
 
 class TinkerProvider:
@@ -89,6 +94,7 @@ class TinkerProvider:
         self._runtime: Runtime | None = None
         self._lock = Lock()
         self._failed = False
+        self.tracer = Tracer()
 
     def status(self) -> ProviderStatus:
         reason = self.settings.disabled_reason()
@@ -120,16 +126,40 @@ class TinkerProvider:
                 raise MissionError(status.disabled_reason or "provider_unavailable")
             try:
                 if self._runtime is None:
-                    self._runtime = self._factory(self.settings.api_key)
-                tokens = self._runtime.encode(messages)
+                    with self.tracer.span("runtime"):
+                        self._runtime = self._factory(self.settings.api_key)
+                with self.tracer.span("encode"):
+                    tokens = self._runtime.encode(messages)
                 if not tokens or len(tokens) > MAX_INPUT_TOKENS:
                     raise MissionError("input_token_limit", 422)
-                self.ledger.reserve(
-                    reservation(len(tokens), MAX_OUTPUT_TOKENS),
-                    self.settings.budget_microdollars,
-                    self.settings.max_model_requests,
-                )
-                text = self._runtime.sample(tokens)
+                estimated = reservation(len(tokens), MAX_OUTPUT_TOKENS)
+                with self.tracer.span("reserve") as budget_span:
+                    self.ledger.reserve(
+                        estimated,
+                        self.settings.budget_microdollars,
+                        self.settings.max_model_requests,
+                    )
+                    budget_span.set(**{"onelap.estimated_reserved_usd": estimated / 1_000_000})
+                with self.tracer.span(
+                    "sample",
+                    **{
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.agent.name": "OneLap",
+                        "gen_ai.provider.name": "tinker",
+                        "gen_ai.request.model": MODEL,
+                        "gen_ai.request.max_tokens": MAX_OUTPUT_TOKENS,
+                        "gen_ai.usage.input_tokens": len(tokens),
+                    },
+                ) as model_span:
+                    text = self._runtime.sample(tokens)
+                    model_span.set(
+                        **{
+                            "gen_ai.response.model": MODEL,
+                            "gen_ai.usage.output_tokens": getattr(
+                                self._runtime, "output_token_count", None
+                            ),
+                        }
+                    )
             except MissionError:
                 raise
             except Exception:
@@ -140,4 +170,6 @@ class TinkerProvider:
             self._lock.release()
 
     def generate(self, messages: list[dict[str, str]]) -> MissionPlan:
-        return parse_plan(self.sample_text(messages))
+        text = self.sample_text(messages)
+        with self.tracer.span("mission_parsing"):
+            return parse_plan(text)

@@ -12,5 +12,6 @@ class MissionService:
 
     def generate(self, request: MissionRequest) -> MissionResponse:
         plan = self.provider.generate(build_messages(request))
-        validate_plan(plan, request)
+        with self.provider.tracer.span("mission_validation"):
+            validate_plan(plan, request)
         return MissionResponse(id=uuid4(), mission=plan, generation=GenerationIdentity())
