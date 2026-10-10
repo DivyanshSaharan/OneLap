@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .access import local_request
-from .budget import BudgetLedger
+from .atlas_budget import inference_ledger
 from .config import ROOT, Settings
 from .errors import MissionError
 from .followup_routes import followup_routes
@@ -64,7 +64,7 @@ def create_app(
     journal = journal or AtlasJournal(journal_settings)
     if provider is not None and provider.settings != settings:
         raise ValueError("Provider and application settings must match")
-    provider = provider or TinkerProvider(settings, BudgetLedger(settings.data_dir))
+    provider = provider or TinkerProvider(settings, inference_ledger(settings, journal_settings))
     provider.tracer = tracer
     service = MissionService(provider)
     limiter = RequestLimiter()
@@ -77,7 +77,10 @@ def create_app(
             try:
                 journal.close()
             finally:
-                tracer.close()
+                try:
+                    provider.ledger.close()
+                finally:
+                    tracer.close()
 
     app = FastAPI(
         title="OneLap",

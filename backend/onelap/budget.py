@@ -3,6 +3,7 @@ import os
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
 from threading import Lock
+from typing import Protocol
 from uuid import uuid4
 
 from .errors import MissionError
@@ -11,6 +12,14 @@ from .provider_json import unique_keys
 # Uncached USD / million tokens; equivalently microdollars per token. Estimates, not bills.
 INPUT_RATE = Decimal("0.33")
 OUTPUT_RATE = Decimal("1.005")
+
+
+class InferenceLedger(Protocol):
+    def snapshot(self) -> dict[str, int]: ...
+
+    def reserve(self, amount: int, cap: int, request_cap: int) -> None: ...
+
+    def close(self) -> None: ...
 
 
 def reservation(input_tokens: int, output_tokens: int) -> int:
@@ -56,6 +65,9 @@ class BudgetLedger:
     def snapshot(self) -> dict[str, int]:
         with self._lock:
             return self._read()
+
+    def close(self) -> None:
+        pass
 
     def reserve(self, amount: int, cap: int, request_cap: int) -> None:
         with self._lock:

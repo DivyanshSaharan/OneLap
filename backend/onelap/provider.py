@@ -6,7 +6,7 @@ from typing import Protocol
 
 from pydantic import ValidationError
 
-from .budget import BudgetLedger, reservation
+from .budget import InferenceLedger, reservation
 from .config import MODEL, Settings
 from .errors import MissionError
 from .models import MissionPlan, ProviderStatus
@@ -79,7 +79,7 @@ class TinkerProvider:
     def __init__(
         self,
         settings: Settings,
-        ledger: BudgetLedger,
+        ledger: InferenceLedger,
         runtime_factory: Callable[[str], Runtime] = TinkerRuntime,
         sdk_available: Callable[[], bool] | None = None,
     ):

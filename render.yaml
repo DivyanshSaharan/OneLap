@@ -23,6 +23,14 @@ services:
         value: 'false'
       - key: ONELAP_APPROVED_BUDGET_USD
         value: '0'
+      - key: ONELAP_BUDGET_STORAGE
+        value: atlas
+      - key: ONELAP_ATLAS_BUDGET_APPROVED
+        value: 'false'
+      - key: ONELAP_BUDGET_IMPORT_USD
+        sync: false
+      - key: ONELAP_BUDGET_IMPORT_REQUESTS
+        sync: false
       - key: ONELAP_JOURNAL_ENABLED
         value: 'false'
       - key: ONELAP_ATLAS_SHARING_APPROVED

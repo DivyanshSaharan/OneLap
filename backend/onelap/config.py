@@ -26,6 +26,10 @@ class Settings:
     data_dir: Path = ROOT / ".data"
     serve_frontend: bool = False
     frontend_directory: Path = ROOT / "dist"
+    budget_storage: str = "file"
+    atlas_budget_approved: bool = False
+    budget_import_microdollars: int | None = None
+    budget_import_requests: int | None = None
 
     def __post_init__(self):
         if self.access_token and not (32 <= len(self.access_token) <= 256):
@@ -41,6 +45,18 @@ class Settings:
             raise ValueError("Budget must be between zero and ten USD")
         if type(self.max_model_requests) is not int or not 1 <= self.max_model_requests <= 100:
             raise ValueError("Request limit must be 1-100")
+        if self.budget_storage not in {"file", "atlas"}:
+            raise ValueError("Budget storage must be file or atlas")
+        imports = (self.budget_import_microdollars, self.budget_import_requests)
+        if any(value is not None for value in imports) and any(value is None for value in imports):
+            raise ValueError("Budget import requires both counters")
+        for value, maximum in zip(imports, (10_000_000, 100), strict=True):
+            if value is not None and (type(value) is not int or not 0 <= value <= maximum):
+                raise ValueError("Invalid budget import counter")
+        if imports[1] == 0 and imports[0] not in (None, 0):
+            raise ValueError("Budget import counters disagree")
+        if imports[1] and not imports[0]:
+            raise ValueError("Budget import counters disagree")
 
     @classmethod
     def from_environment(cls):
@@ -51,6 +67,17 @@ class Settings:
                 raise ValueError
             budget = int(micros)
             maximum = int(os.environ.get("ONELAP_MAX_MODEL_REQUESTS", "20"))
+            imported_dollars = os.environ.get("ONELAP_BUDGET_IMPORT_USD", "")
+            imported_requests = os.environ.get("ONELAP_BUDGET_IMPORT_REQUESTS", "")
+            import_budget = None
+            import_requests = None
+            if imported_dollars:
+                amount = Decimal(imported_dollars) * 1_000_000
+                if not amount.is_finite() or amount != amount.to_integral_value():
+                    raise ValueError
+                import_budget = int(amount)
+            if imported_requests:
+                import_requests = int(imported_requests)
         except (InvalidOperation, ValueError, OverflowError):
             raise ValueError("Invalid OneLap budget or request limit") from None
         return cls(
@@ -62,6 +89,10 @@ class Settings:
             budget_microdollars=budget,
             max_model_requests=maximum,
             serve_frontend=boolean("ONELAP_SERVE_FRONTEND"),
+            budget_storage=os.environ.get("ONELAP_BUDGET_STORAGE", "file"),
+            atlas_budget_approved=boolean("ONELAP_ATLAS_BUDGET_APPROVED"),
+            budget_import_microdollars=import_budget,
+            budget_import_requests=import_requests,
         )
 
     def disabled_reason(self) -> str | None:
