@@ -40,7 +40,7 @@ The repository includes the application, application checks, tests, synthetic ev
 
 ## How I Built It
 
-The AI core is **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)**, sampled through Tinker's Python SDK. The currently tested target is the **base model**; I have not trained a OneLap adapter or measured a fine-tuning improvement.
+The AI core is **[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)**, sampled and fine-tuned through Tinker's Python SDK. I completed one rank-16 LoRA candidate: 100 synthetic supervised examples, three epochs and 30 updates. The app still defaults to the base model; a completed training job does not silently activate its adapter.
 
 The application is React and TypeScript on the phone side, with FastAPI and Pydantic on the backend. A service worker caches the public app shell. IndexedDB holds the saved mission and local observation outbox. MongoDB Atlas stores explicitly synchronized journal entries and provides the selected notes for follow-ups.
 
@@ -61,11 +61,22 @@ Two additional approved samples then passed a fresh hosted production-browser lo
 
 There have been six hosted samples in these small synthetic integration checks, not an accuracy benchmark. Offline unit/browser tests cover state, storage, validation and sharing boundaries; they do not measure whether the missions are enjoyable. Accepted follow-ups now preserve local source references without copying the notes or automatically fetching them; that newer local feature was tested with fixtures after the live run.
 
+I then froze a separate synthetic corpus and ran a matched baseline-versus-adapter pilot. Families were split before creating five variants each: 100 training targets, 20 development inputs and 30 held-out inputs. The targets are assistant-authored and agent-reviewed, not human-reviewed outings. Both models used the same prompts, checks and decoding, with one sample per input and no held-out-driven iteration.
+
+| Passing the application's checks | Base Qwen | LoRA candidate |
+| --- | --- | --- |
+| Development | 16/20 (80%) | 20/20 (100%) |
+| Held-out | 20/30 (66.7%) | 29/30 (96.7%) |
+
+The held-out gain is **30 percentage points in application acceptance**, not a claim of 96.7% semantic accuracy. The variants are correlated, the set is small, and independent human review is pending. One adapter reply still failed: the keyword filter rejected “without recording it,” because it does not understand negation. I left that failure in the result and did not change the check after seeing it.
+
+The pilot reserved $0.285662 for training and 100 evaluation samples under a separate $0.75 token allowance; this is not an invoice total and excludes checkpoint storage. Only the final sampler was saved, with a seven-day expiry. [Full method, failures, latency and cost limitations](https://github.com/DivyanshSaharan/OneLap/blob/main/docs/pilot-results.md) and [hash-bound public metrics](https://github.com/DivyanshSaharan/OneLap/blob/main/reports/onelap-pilot-v1.json) are available. No automatic model promotion or broader quality claim follows from those numbers.
+
 ## Why Does Open Innovation Matter?
 
 A closed text-generation API could produce an outdoor prompt too. What matters to me is control over the small behavior this project needs: concise tasks, grounded reflections, feedback-sensitive adaptation and less phone interaction.
 
-With an open-weight model, I can build a task-specific evaluation set and pursue a model-level adaptation instead of treating the provider's general behavior as fixed. The repository already prepares exact application prompts and replays captured replies through the same checks. A fair baseline-versus-adapter comparison remains future work, not a result I am claiming here.
+With an open-weight model, I can adapt the model's behavior rather than only rewrite a general-purpose prompt. OneLap's pilot turned that option into an actual experiment: task-specific supervision improved the rate of responses the unchanged application could accept. The repository freezes exact prompts and replays captured replies through the same checks. That control does not remove the need for human review, but it lets me investigate a failure at the model level and measure a narrowly defined improvement.
 
 Separating the provider from the application's rules also leaves a path to another compatible model/runtime. That portability is an architectural option, not a verified local deployment today. The present Qwen requests run on Tinker, so shared text still leaves the device; open weights alone do not provide privacy or free inference.
 
@@ -75,4 +86,6 @@ The privacy benefit I can demonstrate now comes from the application design: no 
 
 **Best Use of MongoDB Atlas** — Atlas is the persistent journal behind the open-weight-model workflow. Selected stored observations become the context for an explicitly approved follow-up. Isolated live tests verified storage, duplicate prevention, owner-scoped reads and deletion/replay behavior.
 
-Tinker is used for inference, but I am not claiming Best Use of Tinker without the required fine-tuning and baseline improvement. Render packaging and local Sentry instrumentation are not claims of a deployed service or a live tracing dashboard.
+**Best Use of Tinker** — one task-specific Qwen LoRA candidate, matched baseline/adapter captures and a measured held-out application-acceptance improvement from 20/30 to 29/30. The method and limitations above distinguish that result from semantic accuracy or field usefulness.
+
+Render packaging and local Sentry instrumentation are not claims of a deployed service or a live tracing dashboard. Those categories remain unclaimed until actually demonstrated.

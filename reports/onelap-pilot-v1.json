@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "date": "2026-10-11",
+  "model": "Qwen/Qwen3.5-4B",
+  "corpus_sha256": "384aebbad5b9653b1eb17295e4c53abb509b6ea27539cb99438e8366de492ce9",
+  "training_dataset_sha256": "53017f79621d09c3de589757a637a304e49217b49b5474602a1b28d8d504802f",
+  "evaluation_dataset_sha256": "496031b7582f12430616e9db4aa173519a6071f51d8da482b08f4a90b0e089eb",
+  "method_sha256": "cde6d08736772841a0dd41f5f161a47394cc5c4caf9dd26f321a44c075895c65",
+  "training_receipt_sha256": "eed06decf5bedd51684ae5065c434203605c372294284e0ae4f63a8f243829eb",
+  "review_status": "agent_reviewed_synthetic_not_human_reviewed",
+  "semantic_review": "pending",
+  "automatically_activated": false,
+  "training": {
+    "examples": 100,
+    "families": 20,
+    "rank": 16,
+    "seed": 2026,
+    "epochs": 3,
+    "batch_size": 10,
+    "learning_rate": 0.0001,
+    "completed_updates": 30,
+    "full_sequence_tokens": 280014,
+    "reserved_usd": 0.206386,
+    "checkpoint_ttl_seconds": 604800
+  },
+  "decoding": {"temperature": 0.2, "thinking": false, "max_tokens": 512, "num_samples": 1},
+  "development": {
+    "cases": 20,
+    "families": 4,
+    "baseline_accepted": 16,
+    "adapter_accepted": 20,
+    "baseline_mean_latency_ms": 3027.163345,
+    "adapter_mean_latency_ms": 3506.67436,
+    "reserved_usd_per_arm": 0.015729
+  },
+  "heldout": {
+    "cases": 30,
+    "families": 6,
+    "baseline_accepted": 20,
+    "adapter_accepted": 29,
+    "baseline_schema_valid": 24,
+    "adapter_schema_valid": 30,
+    "paired_application_acceptance": {
+      "both_pass": 19,
+      "adapter_only": 10,
+      "baseline_only": 1,
+      "both_fail": 0
+    },
+    "baseline_mean_latency_ms": 2966.666677,
+    "adapter_mean_latency_ms": 2736.12531,
+    "baseline_output_tokens": 4985,
+    "adapter_output_tokens": 2905,
+    "reserved_usd_per_arm": 0.023909,
+    "adapter_failed_case": "heldout-role-like-note-1",
+    "adapter_failure": "mission_policy_rejected"
+  },
+  "budget": {
+    "logical_operations": 130,
+    "token_reserved_usd": 0.285662,
+    "token_reservation_cap_usd": 0.75,
+    "checkpoint_storage_excluded": true,
+    "not_an_invoice": true,
+    "prior_inference_ledger_unchanged": true
+  },
+  "capture_sha256": {
+    "baseline-dev": "a4fa78abb3cab3ce0891775d04df7556b072c6dacfb5a27bc94a7bb09a8b78b9",
+    "baseline-heldout": "862b8190550b7f2e12a9525479c9d2865bb0802eda1d294805c1db69b69dcbbc",
+    "adapter-dev": "ed13e804e966830ff7b229e302ae856772cd14fe87440d7edeee378f46bba5e2",
+    "adapter-heldout": "3d9efb236fcf2add956860d0b6233b41ff7f730aeedcf1b6493ad19e2589a4ac"
+  },
+  "limitations": [
+    "Application acceptance is not semantic accuracy or a safety guarantee.",
+    "Variants within a family are correlated; no statistical significance is claimed.",
+    "One candidate, one sample per case per arm, no heldout-driven iteration.",
+    "No physical-phone, outdoor, Google authentication or Render deployment result.",
+    "Logical reservations exclude storage and cannot guarantee provider invoice totals."
+  ]
+}
