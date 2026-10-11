@@ -1,5 +1,22 @@
 # OneLap: implementation and handoff plan
 
+## October 11 trained Qwen selection approval
+
+The owner explicitly requested switching to trained Qwen and pushing the work.
+Docker setup is committed in `6cd5805`. The ignored local `.env` now selects the
+existing hash-verified trained adapter, and the Render Blueprint pins that same
+receipt hash and `/etc/secrets/onelap-checkpoint-receipt.json` runtime file path.
+The private receipt must be uploaded to Render before startup; neither it nor
+the sampler path/API keys is committed. Compose remains an isolated base-only
+diagnostic with every spending/sharing gate forced off. Model selection does not
+authorize paid requests, sharing, ledger migration, remote checkpoint probing,
+retraining or Render deployment. Those gates and the spending ledgers remain
+unchanged; a missing/invalid receipt must fail closed rather than use base.
+
+Local adapter selection and receipt integrity passed verification, all 543 offline
+backend tests passed, and the local backend restarted successfully with this
+configuration. No hosted request was made; existing spending ledgers are unchanged.
+
 ## October 11 Docker deployment preparation
 
 The owner approved committing/pushing UI cleanup and then creating the Docker

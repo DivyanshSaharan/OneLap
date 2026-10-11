@@ -28,13 +28,13 @@ services:
       - key: ONELAP_HOSTED_REQUESTS_ENABLED
         value: 'false'
       - key: ONELAP_MODEL_TARGET
-        value: base
+        value: adapter
       - key: ONELAP_CHECKPOINT_APPROVED
-        value: 'false'
+        value: 'true'
       - key: ONELAP_CHECKPOINT_RECEIPT
-        value: ''
+        value: /etc/secrets/onelap-checkpoint-receipt.json
       - key: ONELAP_CHECKPOINT_RECEIPT_SHA256
-        value: ''
+        value: eed06decf5bedd51684ae5065c434203605c372294284e0ae4f63a8f243829eb
       - key: ONELAP_DATA_SHARING_APPROVED
         value: 'false'
       - key: ONELAP_REFLECTION_SHARING_APPROVED

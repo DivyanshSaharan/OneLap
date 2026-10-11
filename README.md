@@ -12,9 +12,9 @@ After returning, save a short observation and feedback locally, including while 
 
 Production builds cache the public app shell with a service worker. Google sign-in provides backend-verified identity and per-user Atlas access; IndexedDB separates missions and notes by that account's journal UUID. All app controls require verified sign-in. Local storage is **not encrypted**. The owner reports local Google login/logout works; automated account-switching checks use synthetic identities. A signed-in open tab works offline, but fresh offline reloads stay locked until online session verification. Physical-phone and outdoor evidence remain pending.
 
-Render/Docker packaging is included, but no Render service has been created or deployed. Atlas-backed spending counters passed an isolated content-free live probe; the production counter is not migrated/activated. Google authentication is implemented following the owner's later approval; real login/session checks are pending, so paid public inference remains off. Optional metadata-only Sentry instrumentation is locally verified, with export disabled and no live dashboard test.
+Render/Docker packaging is included, but no Render service has been created or deployed. Atlas-backed spending counters passed an isolated content-free live probe; the production counter is not migrated/activated. The owner reports local Google login/logout works; deployed HTTPS authentication still needs verification, and paid public inference remains off. Optional metadata-only Sentry instrumentation is locally verified, with export disabled and no live dashboard test.
 
-**One real Tinker LoRA pilot is complete.** With 100 synthetic supervised examples and one three-epoch Qwen3.5-4B candidate, held-out application acceptance improved from **20/30 (66.7%) to 29/30 (96.7%)**; development acceptance improved from 16/20 to 20/20. This is structured-output/application compliance, **not semantic accuracy or outdoor usefulness**. Human semantic review remains pending, and the app still defaults to the base model with hosted gates off. [Full results, failure and cost](docs/pilot-results.md) · [Public hash-bound metrics](reports/onelap-pilot-v1.json) · [Verified checkpoint selection](docs/checkpoint.md).
+**One real Tinker LoRA pilot is complete.** With 100 synthetic supervised examples and one three-epoch Qwen3.5-4B candidate, held-out application acceptance improved from **20/30 (66.7%) to 29/30 (96.7%)**; development acceptance improved from 16/20 to 20/20. This is structured-output/application compliance, **not semantic accuracy or outdoor usefulness**. Human semantic review remains pending. The owner approved selecting this trained adapter locally and in the Render configuration; hosted gates remain off and current remote checkpoint availability is unverified. [Full results, failure and cost](docs/pilot-results.md) · [Public hash-bound metrics](reports/onelap-pilot-v1.json) · [Verified checkpoint selection](docs/checkpoint.md).
 
 Automated model tests use explicit offline doubles; the standard browser suite uses labelled fictional responses, and the packaged-server fixture harness uses local service doubles. The application has no fake-model fallback. Six separately approved hosted samples were made on October 10 using synthetic data: three mission attempts and three follow-ups, with two accepted replies of each type. These are smoke samples, not an accuracy benchmark. See [the initial API evidence](docs/live-smoke-2026-10-10.md) and [the fresh live-browser evidence](docs/live-browser-2026-10-10.md), including semantic defects. A captured follow-up can be reviewed and imported locally without an API call, with an unverified-provenance label that persists offline. Nothing is imported automatically.
 
@@ -56,11 +56,18 @@ the private receipt belongs in a runtime secret file, never the image. See
 [Docker/Render setup and verification](docs/docker-deployment.md). No Render
 deployment or remote model/Atlas test is implied by container verification.
 
+The owner approved selecting the trained Qwen adapter for local use and Render.
+The Blueprint now pins the approved receipt hash and secret-file path; upload
+the exact private receipt before first startup. It is not stored in Git or the
+image. Selection does not enable paid requests or note sharing. The standalone
+Compose diagnostic remains base-only and disabled. Checkpoint integrity has
+passed offline Linux loading; current remote sampler availability is unverified.
+
 Google sessions derive a separate journal UUID from each verified account. Atlas `auth_sessions` stores minimal revocable session metadata, separately from notes and global spending counters. Existing personal-journal data is not silently migrated. The legacy token-only development mode remains single-person; never distribute that token.
 
 Model and note-sync gates remain off in the template. Render free services have an ephemeral filesystem, so production inference requires the new Atlas spending counter and an explicit immutable import of existing reservations; it refuses the file-backed mode for hosted production inference. [Migration setup](docs/budget.md) and [isolated Atlas evidence](docs/atlas-budget-verification.md) are provided. Real Google/Atlas-session verification must pass before public paid use. Free services cannot attach a persistent disk and may take about a minute to wake after 15 minutes idle. See [Render's free-service limits](https://render.com/docs/free), [persistent-disk behavior](https://render.com/docs/disks), and [Blueprint secret configuration](https://render.com/docs/blueprint-spec).
 
-No service, secret, or deployment has been created. Docker is installed, but its Linux engine is not running; an actual image build remains unverified. The packaged UI/API is browser-tested locally, not container-tested. This package alone is not evidence for the Best Use of Render category; that requires an actual deployment and a tested demo.
+No Render service, secret, or deployment has been created. Docker image build and isolated container checks passed locally. This package alone is not evidence for the Best Use of Render category; that requires an actual deployment and a tested demo.
 
 ### Frontend
 

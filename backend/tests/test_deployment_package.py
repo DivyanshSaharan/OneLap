@@ -51,7 +51,6 @@ def test_compose_is_loopback_only_and_uses_separate_private_configuration():
 @pytest.mark.parametrize(
     "gate",
     [
-        "ONELAP_CHECKPOINT_APPROVED",
         "ONELAP_HOSTED_REQUESTS_ENABLED",
         "ONELAP_DATA_SHARING_APPROVED",
         "ONELAP_REFLECTION_SHARING_APPROVED",
@@ -76,7 +75,15 @@ def test_render_exposes_private_runtime_settings_without_secret_values():
     assert "autoDeployTrigger: off" in blueprint
     assert "healthCheckPath: /health" in blueprint
     assert "value: atlas" in blueprint
-    assert "value: base" in blueprint
+    assert "key: ONELAP_MODEL_TARGET\n        value: adapter" in blueprint
+    assert "key: ONELAP_CHECKPOINT_APPROVED\n        value: 'true'" in blueprint
+    assert "value: /etc/secrets/onelap-checkpoint-receipt.json" in blueprint
+
+
+def test_compose_keeps_its_diagnostic_base_separate_from_approved_deployment_adapter():
+    compose = content("compose.yaml")
+    assert "ONELAP_MODEL_TARGET: base" in compose
+    assert "ONELAP_CHECKPOINT_APPROVED: 'false'" in compose
 
 
 def test_only_placeholder_docker_env_example_is_publishable():

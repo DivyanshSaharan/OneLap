@@ -53,9 +53,13 @@ do not start that blank-credential Compose service or expect real login to work.
    `ONELAP_AUTH_ORIGINS` to the actual service's HTTPS origin, without a trailing
    slash/path. Add the same origin to Google's Authorized JavaScript origins.
    Our popup credential flow does not use an OAuth redirect URI.
-3. Keep the Blueprint's model target at `base`, every sharing/spending gate off,
-   and budget at zero during health, public assets, login/reload/logout and
-   two-account checks. `GET /health` does not prove Atlas connectivity.
+3. The owner has now approved the trained adapter as the deployment target.
+   Upload its exact private receipt as the secret file described below BEFORE
+   the first startup; the Blueprint pins its path and SHA-256. Missing/mismatched
+   receipts prevent startup rather than falling back to base. Keep every
+   sharing/spending gate off and budget at zero during health, public assets,
+   login/reload/logout and two-account checks. `GET /health` does not prove Atlas
+   connectivity. Local diagnostic Compose remains base-only deliberately.
 4. Before enabling inference, reread the existing local inference ledger and
    import both counters into the stable Atlas database/scope. Follow
    [budget migration](budget.md); never reset limits or choose a new scope to
