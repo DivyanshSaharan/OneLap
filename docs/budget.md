@@ -2,8 +2,9 @@
 
 Local development keeps the existing `.data/inference-budget.json` ledger. Hosted
 production inference uses `ONELAP_BUDGET_STORAGE=atlas`, because Render's free
-filesystem is ephemeral. This feature is implemented and verified with offline
-doubles; no Atlas counter has been created or tested live by this increment.
+filesystem is ephemeral. Offline coverage is supplemented by an
+[isolated live counter probe](atlas-budget-verification.md) on October 11.
+The production counter has not been created, migrated or activated.
 
 Atlas stores one global OneLap inference counter in the **separate**
 `inference_spending` collection, key `onelap:inference:v1`. The collection contains
