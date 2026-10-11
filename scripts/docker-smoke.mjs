@@ -16,10 +16,27 @@ async function docker(...args) {
   ).stdout.trim()
 }
 
+const permissionFixture = `
+import os
+from pathlib import Path
+assert os.geteuid() == 0 and os.getegid() == 1000
+for name, mode in [('render-secret-fixture', 0o440), ('owner-only-fixture', 0o400)]:
+    path = Path('/tmp') / name
+    path.write_text('fictional-secret-fixture', encoding='utf-8')
+    path.chmod(mode)
+`
+
 const checks = `
-import json, os, re, urllib.request, urllib.error
+import json, os, re, stat, urllib.request, urllib.error
 from pathlib import Path
 assert os.getuid() != 0
+assert os.getegid() == 1000
+fixture = Path('/tmp/render-secret-fixture')
+permissions = fixture.stat()
+assert permissions.st_uid == 0 and permissions.st_gid == 1000
+assert stat.S_IMODE(permissions.st_mode) == 0o440
+assert fixture.read_text('utf-8') == 'fictional-secret-fixture'
+assert not os.access('/tmp/owner-only-fixture', os.R_OK)
 assert not Path('/app/.env').exists()
 assert not Path('/app/.data/experiments').exists()
 assert Path('/app/datasets/onelap-sft-v1.manifest.json').is_file()
@@ -50,7 +67,8 @@ assert get('/api/model/status', {'Authorization': 'Bearer fictional-test-only'})
 assert get('/api/journal/status')[0] == 401
 assert get('/api/auth/session', {'Host': 'attacker.invalid'})[0] == 403
 assert get('/api/auth/session', {'Origin': 'https://attacker.invalid'})[0] == 403
-print(json.dumps({'status': 'passed', 'non_root': True, 'static_assets': True,
+print(json.dumps({'status': 'passed', 'non_root': True, 'render_secret_permissions': True,
+    'static_assets': True,
     'anonymous_access_rejected': True, 'private_files_excluded': True,
     'mission_importer_absent': True, 'remote_network': 'disabled'}))
 `
@@ -102,6 +120,15 @@ try {
     }
   }
   assert.ok(ready, 'Container did not become ready within 30 checks')
+  await docker(
+    'exec',
+    '--user',
+    '0:1000',
+    container,
+    'python',
+    '-c',
+    permissionFixture,
+  )
   console.log(await docker('exec', container, 'python', '-c', checks))
   const healthcheck = await docker(
     'inspect',

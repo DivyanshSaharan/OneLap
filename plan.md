@@ -1,5 +1,31 @@
 # OneLap: implementation and handoff plan
 
+## October 11 Render secret-file permissions fix
+
+The owner approved fixing, testing, committing and pushing this single Docker
+permissions correction. The runtime app remains non-root, with primary group
+1000 for Render secret-file access. A network-disabled container regression
+checks an actual root-owned/group-1000 `0440` file and rejects an owner-only
+`0400` control file, with all container capabilities dropped.
+
+Separately, the existing Render receipt was named `training.json` rather than
+the configured `onelap-checkpoint-receipt.json`. Its uploaded text was verified
+against the approved local bytes: ONLY CRLF-to-LF normalization changed it.
+The uploaded LF SHA-256 is
+`100313a3513de7e73adcdf47ef7c245dc13bb12e0e67a850be655707393e1467`;
+the local CRLF SHA remains unchanged. Runtime configuration must pin the hash of
+the verified uploaded bytes, not disable receipt validation. Render settings
+will be saved without redeployment; the owner will redeploy. No new model,
+training, hosted request, data sharing or spending approval is included.
+
+Verification passed: Linux image rebuild, all 544 backend tests, formatting,
+and the capability-dropped/network-disabled container smoke test (including
+root/group-1000 receipt permissions and the negative permission control). The
+real local receipt normalized to the exact uploaded LF bytes also passed all
+bindings and hash checks inside the patched non-root Linux image. The verified
+LF hash was saved in Render using Save only and read back successfully; no
+deployment was triggered. Both existing spending-ledger hashes remain unchanged.
+
 ## October 11 trained Qwen selection approval
 
 The owner explicitly requested switching to trained Qwen and pushing the work.

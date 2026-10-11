@@ -26,7 +26,7 @@ COPY backend/onelap ./backend/onelap
 COPY datasets/onelap-sft-v1.manifest.json ./datasets/onelap-sft-v1.manifest.json
 COPY --from=frontend /build/dist ./dist
 
-RUN addgroup --system onelap \
+RUN addgroup --gid 1000 --system onelap \
     && adduser --system --ingroup onelap --home /home/onelap onelap \
     && mkdir -p /app/.data \
     && chown onelap:onelap /app/.data

@@ -16,11 +16,23 @@ def test_runtime_is_single_non_root_service_with_signal_and_health_handling():
     assert "FROM node:22-alpine AS frontend" in docker
     assert "COPY --from=frontend /build/dist ./dist" in docker
     assert "USER onelap" in docker
+    assert "addgroup --gid 1000 --system onelap" in docker
+    assert "adduser --system --ingroup onelap" in docker
     assert "HEALTHCHECK" in docker and "/health" in docker
     assert "exec uvicorn" in docker
     assert "${PORT:-10000}" in docker
     assert "--workers 1 --no-proxy-headers" in docker
     assert "COPY . " not in docker
+
+
+def test_container_smoke_checks_render_secret_access_without_root_bypass():
+    smoke = content("scripts/docker-smoke.mjs")
+    assert "assert os.getegid() == 1000" in smoke
+    assert "'0:1000'" in smoke
+    assert "permissions.st_uid == 0 and permissions.st_gid == 1000" in smoke
+    assert "stat.S_IMODE(permissions.st_mode) == 0o440" in smoke
+    assert "fixture.read_text('utf-8') == 'fictional-secret-fixture'" in smoke
+    assert "assert not os.access('/tmp/owner-only-fixture', os.R_OK)" in smoke
 
 
 def test_adapter_binding_files_are_in_image_but_private_receipt_is_not():

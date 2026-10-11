@@ -4,6 +4,9 @@ One image builds React and serves its public assets with FastAPI. There is no
 Vite server, browser API key or second frontend service in production. The
 runtime runs as a non-root user, uses one Uvicorn worker, handles termination via
 `exec`, and probes `/health` without contacting Google, Atlas or Tinker.
+The application user's primary group is `1000`, as required for reading Render's
+runtime secret files. Do not switch the application to root to work around
+secret-file permissions.
 
 ## Local container
 
@@ -85,6 +88,18 @@ ONELAP_CHECKPOINT_RECEIPT_SHA256=<SHA-256 of the exact uploaded bytes>
 
 Preserve the receipt's exact bytes: whitespace/newline changes alter its hash.
 Test runtime read permissions for the secret file under the non-root user.
+The smoke test now creates a root-owned, group-1000 `0440` fictional file inside
+its network-disabled, capability-dropped container and checks that the non-root
+application can read it but cannot read an owner-only `0400` control file.
+
+Render's text editor can normalize Windows CRLF line endings to Unix LF. The
+approved local pilot receipt has SHA-256
+`eed06decf5bedd51684ae5065c434203605c372294284e0ae4f63a8f243829eb`;
+the uploaded LF-only copy was verified to differ ONLY in line endings and has
+SHA-256 `100313a3513de7e73adcdf47ef7c245dc13bb12e0e67a850be655707393e1467`.
+Pin the hash of the exact verified file uploaded to your service. Do not replace
+the expected hash with an arbitrary file's hash or disable validation to pass
+startup. The same receipt/model/method bindings remain mandatory.
 There is no automatic promotion, retraining or base fallback for a bad receipt.
 The saved sampler has a seven-day TTL; no additional training/storage allowance
 is implied. Checkpoint hash validation alone cannot prove remote availability.
