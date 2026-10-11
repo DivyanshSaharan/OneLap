@@ -252,6 +252,7 @@ async function main() {
     await step('explicit_sync_and_exact_cloud_readback', async () => {
       await context.setOffline(false)
       await connect()
+      await page.getByText('Cloud sync & privacy', { exact: true }).click()
       await page.getByRole('button', { name: 'Check Atlas status' }).click()
       await expect(
         page.getByText(
@@ -286,6 +287,7 @@ async function main() {
       )
     })
     await step('review_selected_note_and_request_followup', async () => {
+      await page.getByText('Shape your next outing', { exact: true }).click()
       await page
         .getByRole('button', { name: 'Check follow-up availability' })
         .click()

@@ -73,6 +73,16 @@ async function connect() {
     }),
   )
 }
+it('starts with mission preparation rather than empty journal and developer controls', async () => {
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Make room for a small lap.' })
+  expect(
+    screen.queryByRole('heading', { name: 'Bring back one thought.' }),
+  ).not.toBeInTheDocument()
+  expect(screen.queryByText(/Development preview/)).not.toBeInTheDocument()
+  expect(mocks.generate).not.toHaveBeenCalled()
+  expect(mocks.getStatus).not.toHaveBeenCalled()
+})
 
 it('does not call the model, check status or create a fake mission on load', async () => {
   render(<App />)

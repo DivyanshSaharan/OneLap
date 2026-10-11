@@ -76,9 +76,7 @@ test('imports a reviewed local fixture offline and retains its unverified label 
   const requests = await fixtureApi(context)
   await page.goto('/')
   await expect(
-    page.getByText(
-      'Offline app shell cached. Save a mission before disconnecting.',
-    ),
+    page.getByText('Save a mission here before going offline.'),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   await expect(page.getByLabel('Mission JSON file')).toBeEnabled()
@@ -195,9 +193,7 @@ test('production app reopens a saved fixture offline without credentials or anot
   )
   await page.goto('/')
   await expect(
-    page.getByText(
-      'Offline app shell cached. Save a mission before disconnecting.',
-    ),
+    page.getByText('Save a mission here before going offline.'),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   expect(requests).toHaveLength(0)
@@ -389,6 +385,7 @@ test('offline observations survive reload and explicit sync safely replays a los
     .getByRole('button', { name: 'Connect to local backend', exact: true })
     .click()
   await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await page.getByText('Cloud sync & privacy', { exact: true }).click()
   await page.getByRole('button', { name: 'Check Atlas status' }).click()
   await expect(
     page.getByText(

@@ -868,6 +868,22 @@ select {
   margin: 4px 0 12px;
   overflow-wrap: anywhere;
 }
+.journal-sync > summary,
+.followup-options > summary {
+  cursor: pointer;
+  min-height: 44px;
+  font-weight: 600;
+}
+.followup-options {
+  border-top: 1px solid #d5ddcc;
+  margin-top: 20px;
+  padding-top: 20px;
+}
+.followup-options .followup-panel {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 8px;
+}
 @media (max-width: 760px) {
   .journal {
     padding: 23px;

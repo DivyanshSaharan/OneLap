@@ -175,6 +175,23 @@ export default function App() {
             </button>
           </div>
         )}
+        {!pocket &&
+          (state.mission ||
+            journal.records.length > 0 ||
+            journal.cloud.length > 0 ||
+            journal.storageError) && (
+            <JournalPanel
+              key={`journal:${state.owner ?? 'device'}`}
+              journal={journal}
+              followUp={followUp}
+              mission={state.mission}
+              busy={busy}
+              connected={Boolean(state.status)}
+              online={online}
+              returning={returning}
+              onAccept={state.adoptFollowUp}
+            />
+          )}
         {!pocket && (
           <MissionImport
             key={`import:${state.owner ?? 'device'}`}
@@ -184,33 +201,16 @@ export default function App() {
           />
         )}
         {!pocket && (
-          <JournalPanel
-            key={`journal:${state.owner ?? 'device'}`}
-            journal={journal}
-            followUp={followUp}
-            mission={state.mission}
-            busy={busy}
-            connected={Boolean(state.status)}
-            online={online}
-            returning={returning}
-            onAccept={state.adoptFollowUp}
-          />
-        )}
-        {!pocket && (
           <footer className="page-footer">
             <p>Made for a small break, not another feed.</p>
             <p className="small muted">
               {shell.state === 'ready'
-                ? 'Offline app shell cached. Save a mission before disconnecting.'
+                ? 'Save a mission here before going offline.'
                 : shell.state === 'development'
-                  ? 'Development preview · use a production build to test offline reopening.'
+                  ? 'This preview needs an internet connection to reopen.'
                   : shell.state === 'unavailable'
-                    ? 'Offline app caching is unavailable. Reopening requires HTTPS or localhost and a compatible browser.'
-                    : 'Preparing the offline app shell…'}
-            </p>
-            <p className="small muted">
-              Reflections use selected Atlas notes only after separate sharing
-              approval.
+                    ? 'Offline reopening is unavailable in this browser. Keep this page open.'
+                    : 'Preparing for offline reading…'}
             </p>
           </footer>
         )}

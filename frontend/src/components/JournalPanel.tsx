@@ -218,7 +218,8 @@ export function JournalPanel({
           </fieldset>
         </form>
       </details>
-      <div className="journal-sync">
+      <details className="journal-sync">
+        <summary>Cloud sync & privacy</summary>
         <h3>Your journal, on your terms.</h3>
         <p className="small muted">
           Local notes are not encrypted or hidden from other people using this
@@ -368,16 +369,19 @@ export function JournalPanel({
         >
           {journal.busy ? 'Working on your journal…' : 'Sync pending changes'}
         </button>
-      </div>
-      <FollowUpPanel
-        followUp={followUp}
-        entries={followUpEntries}
-        owner={journal.status?.enabled ? journal.status.owner_id : null}
-        busy={busy}
-        connected={connected}
-        online={online}
-        onAccept={onAccept}
-      />
+      </details>
+      <details className="followup-options">
+        <summary>Shape your next outing</summary>
+        <FollowUpPanel
+          followUp={followUp}
+          entries={followUpEntries}
+          owner={journal.status?.enabled ? journal.status.owner_id : null}
+          busy={busy}
+          connected={connected}
+          online={online}
+          onAccept={onAccept}
+        />
+      </details>
       <div className="journal-entries">
         <h3>Saved observations</h3>
         {journal.restoring ? (

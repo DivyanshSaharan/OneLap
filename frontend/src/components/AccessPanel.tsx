@@ -68,9 +68,8 @@ export function AccessPanel({
         ) : (
           <>
             <p className="small muted">
-              Local development needs no owner ID or access token. Connect to
-              check the backend; this does not generate a mission or upload
-              notes.
+              Connect to check mission and journal availability. This does not
+              generate a mission or upload notes.
             </p>
             <button
               className="secondary-button"
@@ -115,11 +114,9 @@ export function AccessPanel({
           </>
         )}
         <p className="small muted">
-          Connection state and optional tokens stay in memory and are forgotten
-          on reload. The last verified journal is remembered for offline access.
-          Disconnect returns to separate device-only notes; other journals
-          remain on this device until removed. This is not account
-          authentication or encryption.
+          Access is forgotten on reload. Your last journal is remembered for
+          offline reading. Disconnect keeps notes here, in separate journals.
+          This is not sign-in; anyone using this browser can read local notes.
         </p>
         <p className="small muted">
           Generation sends generic outing selections to Tinker. No location,

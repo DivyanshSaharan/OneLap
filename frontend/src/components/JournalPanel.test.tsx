@@ -129,6 +129,7 @@ it('requires explicit consent and only submits IDs present at consent time', asy
     ],
   })
   render(<JournalPanel {...props} connected online journal={journal} />)
+  fireEvent.click(screen.getByText('Cloud sync & privacy'))
   expect(
     screen.getByRole('button', { name: 'Sync pending changes' }),
   ).toBeDisabled()
@@ -178,6 +179,7 @@ it('requires a separate review confirmation before linking device-only notes to 
     ],
   })
   render(<JournalPanel {...props} connected online journal={journal} />)
+  fireEvent.click(screen.getByText('Cloud sync & privacy'))
   fireEvent.click(screen.getByText('Recover device-only notes'))
   const link = screen.getByRole('button', {
     name: 'Link reviewed notes to this journal',
@@ -197,4 +199,19 @@ it('returning from pocket mode opens the form and focuses observation entry', as
   await waitFor(() =>
     expect(screen.getByLabelText('What did you notice?')).toHaveFocus(),
   )
+})
+it('keeps cloud and model controls collapsed without making requests', () => {
+  const journal = state()
+  render(<JournalPanel {...props} journal={journal} />)
+  expect(
+    screen.getByText('Cloud sync & privacy').closest('details'),
+  ).not.toHaveAttribute('open')
+  expect(
+    screen.getByText('Shape your next outing').closest('details'),
+  ).not.toHaveAttribute('open')
+  expect(
+    screen.getByRole('button', { name: 'Check Atlas status' }),
+  ).not.toBeVisible()
+  expect(journal.check).not.toHaveBeenCalled()
+  expect(journal.sync).not.toHaveBeenCalled()
 })
