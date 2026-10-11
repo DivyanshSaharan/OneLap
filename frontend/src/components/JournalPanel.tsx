@@ -101,11 +101,17 @@ export function JournalPanel({
   ].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))
   return (
     <section className="journal panel" aria-labelledby="journal-title">
-      <span className="eyebrow">03 / WHEN YOU’RE BACK</span>
-      <h2 id="journal-title">Bring back one thought.</h2>
-      <p className="muted">
-        A sound, a shadow, a detail you almost missed. What stayed with you?
-      </p>
+      <span className="eyebrow">
+        {forMission ? '03 / WHEN YOU’RE BACK' : 'YOUR JOURNAL'}
+      </span>
+      <h2 id="journal-title">
+        {forMission ? 'Bring back one thought.' : 'Your journal.'}
+      </h2>
+      {forMission && (
+        <p className="muted">
+          A sound, a shadow, a detail you almost missed. What stayed with you?
+        </p>
+      )}
       {journal.error && <Notice error>{journal.error}</Notice>}
       {journal.storageError && (
         <Notice error>
@@ -120,101 +126,103 @@ export function JournalPanel({
         </Notice>
       )}
       {journal.message && <Notice>{journal.message}</Notice>}
-      <details className="observation-details" ref={details}>
-        <summary>Record an observation</summary>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault()
-            if (
-              busy ||
-              !forMission ||
-              (outcome === 'completed' && !observation.trim())
-            )
-              return
-            const saved = await journal.capture(forMission, {
-              outcome,
-              observation,
-              feedback,
-            })
-            if (saved) {
-              setObservation('')
-              setFeedback(null)
-              setOutcome('completed')
-              setDraftMission(mission)
-            }
-          }}
-        >
-          <p className="small muted">
-            {forMission
-              ? `For: ${forMission.mission.title}`
-              : 'Create or restore a mission first.'}
-          </p>
-          {forMission && mission && forMission.id !== mission.id && (
-            <p className="small muted">
-              This draft still belongs to the earlier mission shown above.
-            </p>
-          )}
-          <fieldset
-            disabled={busy || !forMission || Boolean(journal.storageError)}
-            className="journal-fields"
-          >
-            <legend className="sr-only">Your outing feedback</legend>
-            <div className="field-grid">
-              <label>
-                How did the outing go?
-                <select
-                  value={outcome}
-                  onChange={(event) =>
-                    setOutcome(event.target.value as Outcome)
-                  }
-                >
-                  <option value="completed">I completed it</option>
-                  <option value="stopped">I stopped</option>
-                  <option value="skipped">I skipped it</option>
-                </select>
-              </label>
-              <label>
-                How did the mission fit?
-                <select
-                  value={feedback ?? ''}
-                  onChange={(event) =>
-                    setFeedback((event.target.value || null) as Feedback)
-                  }
-                >
-                  <option value="">Not rated</option>
-                  <option value="useful">Useful</option>
-                  <option value="too_difficult">Too difficult</option>
-                  <option value="not_for_me">Not for me</option>
-                </select>
-              </label>
-            </div>
-            <label>
-              What did you notice?
-              <textarea
-                ref={textarea}
-                value={observation}
-                maxLength={1000}
-                rows={4}
-                onChange={(event) => setObservation(event.target.value)}
-                placeholder="One small thing you noticed. Avoid precise locations or private details."
-                required={outcome === 'completed'}
-              />
-            </label>
-            <p className="small muted">
-              Save before closing so you don’t lose your thought. You choose
-              whether to share it later.
-            </p>
-            <button
-              className="primary-button"
-              disabled={
-                busy || (outcome === 'completed' && !observation.trim())
+      {forMission && (
+        <details className="observation-details" ref={details}>
+          <summary>Record an observation</summary>
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault()
+              if (
+                busy ||
+                !forMission ||
+                (outcome === 'completed' && !observation.trim())
+              )
+                return
+              const saved = await journal.capture(forMission, {
+                outcome,
+                observation,
+                feedback,
+              })
+              if (saved) {
+                setObservation('')
+                setFeedback(null)
+                setOutcome('completed')
+                setDraftMission(mission)
               }
+            }}
+          >
+            <p className="small muted">
+              {forMission
+                ? `For: ${forMission.mission.title}`
+                : 'Create or restore a mission first.'}
+            </p>
+            {forMission && mission && forMission.id !== mission.id && (
+              <p className="small muted">
+                This draft still belongs to the earlier mission shown above.
+              </p>
+            )}
+            <fieldset
+              disabled={busy || !forMission || Boolean(journal.storageError)}
+              className="journal-fields"
             >
-              Save observation on this device
-            </button>
-          </fieldset>
-        </form>
-      </details>
+              <legend className="sr-only">Your outing feedback</legend>
+              <div className="field-grid">
+                <label>
+                  How did the outing go?
+                  <select
+                    value={outcome}
+                    onChange={(event) =>
+                      setOutcome(event.target.value as Outcome)
+                    }
+                  >
+                    <option value="completed">I completed it</option>
+                    <option value="stopped">I stopped</option>
+                    <option value="skipped">I skipped it</option>
+                  </select>
+                </label>
+                <label>
+                  How did the mission fit?
+                  <select
+                    value={feedback ?? ''}
+                    onChange={(event) =>
+                      setFeedback((event.target.value || null) as Feedback)
+                    }
+                  >
+                    <option value="">Not rated</option>
+                    <option value="useful">Useful</option>
+                    <option value="too_difficult">Too difficult</option>
+                    <option value="not_for_me">Not for me</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                What did you notice?
+                <textarea
+                  ref={textarea}
+                  value={observation}
+                  maxLength={1000}
+                  rows={4}
+                  onChange={(event) => setObservation(event.target.value)}
+                  placeholder="One small thing you noticed. Avoid precise locations or private details."
+                  required={outcome === 'completed'}
+                />
+              </label>
+              <p className="small muted">
+                Save before closing so you don’t lose your thought. You choose
+                whether to share it later.
+              </p>
+              <button
+                className="primary-button"
+                disabled={
+                  busy || (outcome === 'completed' && !observation.trim())
+                }
+              >
+                Save observation on this device
+              </button>
+            </fieldset>
+          </form>
+        </details>
+      )}
       <details className="journal-sync">
         <summary>Cloud sync & privacy</summary>
         <h3>Your journal, on your terms.</h3>

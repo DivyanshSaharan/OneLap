@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { mission, status } from '../src/test/fixtures'
-import { journalStatus, owner, otherOwner } from '../src/journal/test-fixtures'
+import {
+  journalStatus,
+  outing,
+  owner,
+  otherOwner,
+} from '../src/journal/test-fixtures'
 
 test('Google fixture login restores on reload, isolates local accounts and never syncs without approval', async ({
   page,
@@ -202,4 +207,107 @@ test('Google fixture login restores on reload, isolates local accounts and never
     () => document.documentElement.scrollWidth > window.innerWidth,
   )
   expect(overflow).toBe(false)
+})
+
+test('a fresh signed-in device can explicitly load cloud history without creating a mission', async ({
+  page,
+  context,
+}) => {
+  const csrf = 'a'.repeat(43)
+  let signedIn = true
+  let journalReads = 0
+  let journalWrites = 0
+  let modelRequests = 0
+  await context.route('**/api/**', async (route) => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    if (path === '/api/auth/session')
+      return route.fulfill({
+        json: {
+          enabled: true,
+          client_id: 'fictional.apps.googleusercontent.com',
+          owner_id: signedIn ? owner : null,
+          csrf: signedIn ? csrf : null,
+        },
+      })
+    expect(signedIn).toBe(true)
+    if (path === '/api/model/status') return route.fulfill({ json: status })
+    if (path === '/api/journal/status')
+      return route.fulfill({ json: journalStatus })
+    if (path === '/api/journal/entries') {
+      if (request.method() !== 'GET') {
+        ++journalWrites
+        throw new Error('Unexpected journal upload in explicit-load fixture')
+      }
+      ++journalReads
+      expect(request.headers()['x-onelap-journal-owner']).toBe(owner)
+      return route.fulfill({
+        json: {
+          owner_id: owner,
+          entries: [
+            {
+              entry: outing,
+              received_at: '2026-10-06T14:01:00.000Z',
+              mission_source: 'client_submitted',
+            },
+          ],
+          next_after: null,
+        },
+      })
+    }
+    if (path === '/api/auth/logout') {
+      expect(request.headers()['x-onelap-csrf']).toBe(csrf)
+      signedIn = false
+      return route.fulfill({ json: { status: 'signed_out' } })
+    }
+    if (path === '/api/missions' || path === '/api/followups') ++modelRequests
+    throw new Error('Unexpected API request in fresh-device cloud fixture')
+  })
+  await page.goto('/')
+  await expect(
+    page.getByRole('heading', { name: 'Your journal.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Record an observation', { exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByLabel('What did you notice?')).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: mission.mission.title, level: 2 }),
+  ).toHaveCount(0)
+  expect(journalReads).toBe(0)
+  expect(journalWrites).toBe(0)
+  expect(modelRequests).toBe(0)
+
+  await page.getByText('Cloud sync & privacy', { exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Load cloud journal' }),
+  ).toBeDisabled()
+  await page.getByRole('button', { name: 'Check Atlas status' }).click()
+  await expect(
+    page.getByRole('button', { name: 'Load cloud journal' }),
+  ).toBeEnabled()
+  expect(journalReads).toBe(0)
+  await page.getByRole('button', { name: 'Load cloud journal' }).click()
+  await expect(
+    page.getByText(outing.observation, { exact: true }),
+  ).toBeVisible()
+  expect(journalReads).toBe(1)
+  expect(journalWrites).toBe(0)
+  expect(modelRequests).toBe(0)
+  await expect(
+    page.getByRole('button', { name: 'Sync pending changes' }),
+  ).toBeDisabled()
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+  await expect(
+    page.getByText('Cloud sync & privacy', { exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByText(outing.observation, { exact: true })).toHaveCount(
+    0,
+  )
+  await expect(
+    page.getByRole('heading', { name: 'Your journal.' }),
+  ).toHaveCount(0)
+  expect(journalReads).toBe(1)
+  expect(journalWrites).toBe(0)
+  expect(modelRequests).toBe(0)
 })

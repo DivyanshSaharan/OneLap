@@ -276,7 +276,8 @@ export function Workspace({
           </div>
         )}
         {!pocket &&
-          (state.mission ||
+          (auth.authenticated ||
+            state.mission ||
             journal.records.length > 0 ||
             journal.cloud.length > 0 ||
             journal.storageError) && (

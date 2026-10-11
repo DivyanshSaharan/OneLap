@@ -1,5 +1,33 @@
 # OneLap: implementation and handoff plan
 
+## October 11 explicit Atlas journal sync
+
+The owner requested Atlas sync after discussing local IndexedDB retention and
+account isolation. The existing journal implementation needs only
+`ONELAP_JOURNAL_ENABLED=true` and `ONELAP_ATLAS_SHARING_APPROVED=true` in the
+deployed service; both values are saved and read back in Render. Model caps,
+immutable spending imports, receipt bindings and credentials are unchanged.
+Reflection sharing and tracing stay disabled. No personal notes are uploaded
+automatically, and no model request is part of journal synchronization.
+
+The UI fix exposes cloud-journal controls in a connected, signed-in workspace
+even with no saved mission or local history. It hides the observation form when
+there is no mission, preserving the preparation-first layout. Tests use fictional
+accounts and notes; live personal-note upload and Google verification remain
+user-driven. The owner explicitly approved committing, pushing and deploying
+this tested UI increment.
+See docs/atlas-sync.md. The earlier mission-only activation below is historical
+and superseded only for explicit Atlas note synchronization.
+
+Verification passes: 62 offline backend journal/authentication tests, all 254
+frontend tests, eight offline Edge production-browser checks, TypeScript,
+production build and Prettier. The new fresh-device check loads one fictional
+cloud journal only after a button press, with zero uploads and zero model
+requests. Render redeployment of existing release `3a260b1` reports live with the
+saved sync settings; the owner subsequently approved releasing the fresh-device
+UI fix as one functionality commit.
+Both existing local spending-ledger hashes remain unchanged.
+
 ## October 11 approved mission-only production activation
 
 The owner approved enabling mission generation, editing the necessary settings in

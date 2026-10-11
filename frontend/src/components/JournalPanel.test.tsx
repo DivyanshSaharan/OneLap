@@ -71,6 +71,77 @@ it('records locally while offline and does not ask for cloud consent', async () 
   expect(journal.sync).not.toHaveBeenCalled()
   expect(screen.getByLabelText('What did you notice?')).toHaveValue('')
 })
+it('opens cloud history without needing a mission or making automatic requests', async () => {
+  const journal = state()
+  const view = render(
+    <JournalPanel
+      {...props}
+      mission={null}
+      connected
+      online
+      journal={journal}
+    />,
+  )
+  expect(screen.getByRole('heading', { name: 'Your journal.' })).toBeVisible()
+  expect(screen.queryByText('Record an observation')).not.toBeInTheDocument()
+  expect(
+    screen.queryByLabelText('What did you notice?'),
+  ).not.toBeInTheDocument()
+  expect(journal.check).not.toHaveBeenCalled()
+  expect(journal.readCloud).not.toHaveBeenCalled()
+  expect(journal.capture).not.toHaveBeenCalled()
+  expect(journal.sync).not.toHaveBeenCalled()
+
+  await userEvent.click(screen.getByText('Cloud sync & privacy'))
+  expect(
+    screen.getByRole('button', { name: 'Load cloud journal' }),
+  ).toBeDisabled()
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Check Atlas status' }),
+  )
+  expect(journal.check).toHaveBeenCalledOnce()
+  expect(journal.readCloud).not.toHaveBeenCalled()
+
+  view.rerender(
+    <JournalPanel
+      {...props}
+      mission={null}
+      connected
+      online
+      journal={{ ...journal, status: journalStatus }}
+    />,
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Load cloud journal' }),
+  )
+  expect(journal.readCloud).toHaveBeenCalledExactlyOnceWith()
+  expect(journal.sync).not.toHaveBeenCalled()
+})
+
+it('keeps an existing observation draft when the current mission is cleared', async () => {
+  const journal = state()
+  const view = render(<JournalPanel {...props} journal={journal} />)
+  await userEvent.click(screen.getByText('Record an observation'))
+  await userEvent.type(
+    screen.getByLabelText('What did you notice?'),
+    'A thought for the earlier outing.',
+  )
+  view.rerender(<JournalPanel {...props} mission={null} journal={journal} />)
+  expect(
+    screen.getByRole('heading', { name: 'Bring back one thought.' }),
+  ).toBeVisible()
+  expect(screen.getByLabelText('What did you notice?')).toHaveValue(
+    'A thought for the earlier outing.',
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Save observation on this device' }),
+  )
+  expect(journal.capture).toHaveBeenCalledExactlyOnceWith(mission, {
+    outcome: 'completed',
+    observation: 'A thought for the earlier outing.',
+    feedback: null,
+  })
+})
 it('preserves typed text when local save fails', async () => {
   const journal = state({ capture: vi.fn().mockResolvedValue(false) })
   render(<JournalPanel {...props} journal={journal} />)

@@ -59,6 +59,10 @@ function expectLocked() {
   expect(
     screen.queryByRole('heading', { name: /Bring back one thought/ }),
   ).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('heading', { name: 'Your journal.' }),
+  ).not.toBeInTheDocument()
+  expect(screen.queryByText('Cloud sync & privacy')).not.toBeInTheDocument()
   expect(screen.queryByText('Backend connection')).not.toBeInTheDocument()
   expect(screen.queryByText(/Import a mission/)).not.toBeInTheDocument()
   expect(mocks.journal).not.toHaveBeenCalled()

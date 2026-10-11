@@ -28,7 +28,10 @@ The approved cumulative limits are **$0.05 / 20 requests**, including the import
 not $0.05 or 20 additional requests. At initialization, the remaining estimated
 reservation allowance is $0.045335 and 14 admissions; actual admissible requests
 also depend on each request's token estimate. Mission generation only is approved.
-Journal upload, observation/reflection sharing and tracing remain disabled.
+Atlas journal sync was subsequently approved separately, with explicit per-sync
+consent. Sharing observations with Tinker for reflections and tracing remain
+disabled. Ordinary journal sync makes no model request and does not reserve
+inference allowance.
 
 The procedure below also applies to a separately approved future migration; do
 not reinitialize this production counter or import the floor a second time.
