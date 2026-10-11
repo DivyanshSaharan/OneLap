@@ -1,8 +1,11 @@
-import { beforeEach, expect, it } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
+import { IDBFactory } from 'fake-indexeddb'
 import {
   clearMission,
   loadMission,
   saveMission,
+  loadLocalOwner,
+  saveLocalOwner,
   type MissionSource,
   type FollowUpOrigin,
 } from './storage'
@@ -19,7 +22,48 @@ const followUp = {
 const origin: FollowUpOrigin = { owner_id: owner, source_ids: [outing.id] }
 
 beforeEach(async () => {
+  vi.stubGlobal('indexedDB', new IDBFactory())
   await clearMission()
+})
+
+it('isolates each journal mission from device-only legacy data and other owners', async () => {
+  const other = '22222222-2222-4222-8222-222222222222'
+  await saveMission(mission)
+  const owned = {
+    ...mission,
+    mission: { ...mission.mission, title: 'Journal A' },
+  }
+  const separate = {
+    ...mission,
+    mission: { ...mission.mission, title: 'Journal B' },
+  }
+  await saveMission(owned, 'generated', undefined, owner)
+  await saveMission(separate, 'generated', undefined, other)
+  expect((await loadMission(owner))?.response).toEqual(owned)
+  expect((await loadMission(other))?.response).toEqual(separate)
+  expect((await loadMission())?.response).toEqual(mission)
+  await clearMission(owner)
+  expect(await loadMission(owner)).toBeNull()
+  expect((await loadMission(other))?.response).toEqual(separate)
+  expect((await loadMission())?.response).toEqual(mission)
+})
+
+it('remembers only the last journal identity for offline access, not an access token', async () => {
+  expect(await loadLocalOwner()).toBeNull()
+  await saveLocalOwner(owner)
+  expect(await loadLocalOwner()).toBe(owner)
+  await saveLocalOwner(null)
+  expect(await loadLocalOwner()).toBeNull()
+  await expect(saveLocalOwner('private-token')).rejects.toThrow()
+})
+
+it('rejects follow-up origins from another journal before replacing an owned mission', async () => {
+  const other = '22222222-2222-4222-8222-222222222222'
+  await saveMission(mission, 'generated', undefined, other)
+  await expect(
+    saveMission(followUp, 'generated', origin, other),
+  ).rejects.toThrow()
+  expect((await loadMission(other))?.response).toEqual(mission)
 })
 
 it('loads no mission on an empty device', async () =>

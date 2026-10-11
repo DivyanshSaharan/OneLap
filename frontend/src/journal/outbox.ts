@@ -1,4 +1,4 @@
-import { openDatabase } from '../storage'
+import { openDatabase, type LocalOwner } from '../storage'
 import {
   identifier,
   parseLocal,
@@ -9,7 +9,9 @@ import {
 } from './domain'
 
 const STORE = 'outings'
-export async function loadOutbox(): Promise<LocalRecord[]> {
+export async function loadOutbox(owner?: LocalOwner): Promise<LocalRecord[]> {
+  if (owner !== undefined && owner !== null && !identifier(owner))
+    throw new Error('invalid_outbox')
   const database = await openDatabase()
   try {
     const rows = await new Promise<unknown[]>((resolve, reject) => {
@@ -20,7 +22,17 @@ export async function loadOutbox(): Promise<LocalRecord[]> {
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(new Error('outbox_unavailable'))
     })
-    return rows.map(parseLocal)
+    return rows
+      .filter(
+        (row) =>
+          owner === undefined ||
+          !row ||
+          typeof row !== 'object' ||
+          !('owner_id' in row) ||
+          !(row.owner_id === null || identifier(row.owner_id)) ||
+          row.owner_id === owner,
+      )
+      .map(parseLocal)
   } finally {
     database.close()
   }
@@ -59,7 +71,11 @@ async function mutate(
   }
 }
 
-export async function queueOuting(entry: Outing): Promise<void> {
+export async function queueOuting(
+  entry: Outing,
+  owner: LocalOwner = null,
+): Promise<void> {
+  if (owner !== null && !identifier(owner)) throw new Error('invalid_outbox')
   const validated = parseOuting(entry)
   await mutate(entry.id, (current) => {
     if (current) throw new Error('outbox_conflict')
@@ -67,7 +83,7 @@ export async function queueOuting(entry: Outing): Promise<void> {
       version: 1,
       kind: 'entry',
       id: entry.id,
-      owner_id: null,
+      owner_id: owner,
       stage: 'pending',
       entry: validated,
     }
@@ -99,8 +115,13 @@ export async function acknowledge(
       : { ...(current as EntryRecord), stage: 'synced' }
   })
 }
-export async function removeOuting(id: string): Promise<void> {
+export async function removeOuting(
+  id: string,
+  owner?: LocalOwner,
+): Promise<void> {
   await mutate(id, (current) => {
+    if (current && owner !== undefined && current.owner_id !== owner)
+      throw new Error('journal_owner_mismatch')
     if (!current || current.owner_id === null) return null
     return {
       version: 1,

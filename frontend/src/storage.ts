@@ -4,6 +4,50 @@ import { identifier } from './journal/domain'
 const DATABASE = 'onelap-local'
 const STORE = 'missions'
 const KEY = 'current'
+const ACTIVE_OWNER = 'active-journal'
+
+export type LocalOwner = string | null
+
+function missionKey(owner: LocalOwner): string {
+  if (owner !== null && !identifier(owner))
+    throw new Error('saved_mission_invalid')
+  return owner === null ? KEY : `journal:${owner}`
+}
+
+export async function loadLocalOwner(): Promise<LocalOwner> {
+  const database = await openDatabase()
+  try {
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const request = database
+        .transaction(STORE, 'readonly')
+        .objectStore(STORE)
+        .get(ACTIVE_OWNER)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(new Error('storage_unavailable'))
+    })
+    if (value === undefined || value === null) return null
+    if (!identifier(value)) throw new Error('saved_mission_invalid')
+    return value
+  } finally {
+    database.close()
+  }
+}
+
+export async function saveLocalOwner(owner: LocalOwner): Promise<void> {
+  missionKey(owner)
+  const database = await openDatabase()
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORE, 'readwrite')
+      transaction.objectStore(STORE).put(owner, ACTIVE_OWNER)
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = transaction.onabort = () =>
+        reject(new Error('storage_unavailable'))
+    })
+  } finally {
+    database.close()
+  }
+}
 export type MissionSource = 'generated' | 'imported'
 export interface FollowUpOrigin {
   owner_id: string
@@ -72,12 +116,15 @@ export function openDatabase(): Promise<IDBDatabase> {
   })
 }
 
-export async function loadMission(): Promise<SavedMission | null> {
+export async function loadMission(
+  owner: LocalOwner = null,
+): Promise<SavedMission | null> {
+  const key = missionKey(owner)
   const database = await openDatabase()
   try {
     const value = await new Promise<unknown>((resolve, reject) => {
       const transaction = database.transaction(STORE, 'readonly')
-      const request = transaction.objectStore(STORE).get(KEY)
+      const request = transaction.objectStore(STORE).get(key)
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(new Error('storage_unavailable'))
     })
@@ -108,6 +155,12 @@ export async function loadMission(): Promise<SavedMission | null> {
       throw new Error('saved_mission_invalid')
     }
     const response = parseMission(value.response)
+    if (
+      'followUpOrigin' in value &&
+      owner !== null &&
+      parseFollowUpOrigin(value.followUpOrigin).owner_id !== owner
+    )
+      throw new Error('saved_mission_invalid')
     return {
       version: 1,
       response,
@@ -132,6 +185,7 @@ export async function saveMission(
   response: MissionResponse,
   source: MissionSource = 'generated',
   followUpOrigin?: FollowUpOrigin,
+  owner: LocalOwner = null,
 ): Promise<SavedMission> {
   if (source !== 'generated' && source !== 'imported')
     throw new Error('saved_mission_invalid')
@@ -151,11 +205,17 @@ export async function saveMission(
         }
       : {}),
   }
-  await write(record)
+  if (followUpOrigin && owner !== null && followUpOrigin.owner_id !== owner)
+    throw new Error('saved_mission_invalid')
+  await write(record, owner)
   return record
 }
 
-async function write(record: SavedMission | null): Promise<void> {
+async function write(
+  record: SavedMission | null,
+  owner: LocalOwner,
+): Promise<void> {
+  const key = missionKey(owner)
   const database = await openDatabase()
   try {
     await new Promise<void>((resolve, reject) => {
@@ -163,14 +223,14 @@ async function write(record: SavedMission | null): Promise<void> {
       transaction.oncomplete = () => resolve()
       transaction.onerror = () => reject(new Error('storage_unavailable'))
       transaction.onabort = () => reject(new Error('storage_unavailable'))
-      if (record) transaction.objectStore(STORE).put(record, KEY)
-      else transaction.objectStore(STORE).delete(KEY)
+      if (record) transaction.objectStore(STORE).put(record, key)
+      else transaction.objectStore(STORE).delete(key)
     })
   } finally {
     database.close()
   }
 }
 
-export async function clearMission(): Promise<void> {
-  await write(null)
+export async function clearMission(owner: LocalOwner = null): Promise<void> {
+  await write(null, owner)
 }

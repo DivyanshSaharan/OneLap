@@ -14,6 +14,31 @@ import { otherOwner, outing, owner } from './test-fixtures'
 
 beforeEach(() => vi.stubGlobal('indexedDB', new IDBFactory()))
 
+it('reads only matching owner records and preserves device-only notes without binding them', async () => {
+  await queueOuting(outing)
+  const owned = { ...outing, id: owner, observation: 'Journal A private note.' }
+  const separate = {
+    ...outing,
+    id: otherOwner,
+    observation: 'Journal B private note.',
+  }
+  await queueOuting(owned, owner)
+  await queueOuting(separate, otherOwner)
+  expect(await loadOutbox(owner)).toEqual([
+    expect.objectContaining({ owner_id: owner, entry: owned }),
+  ])
+  expect(await loadOutbox(otherOwner)).toEqual([
+    expect.objectContaining({ owner_id: otherOwner, entry: separate }),
+  ])
+  expect(await loadOutbox(null)).toEqual([
+    expect.objectContaining({ owner_id: null, entry: outing }),
+  ])
+  await expect(removeOuting(owned.id, otherOwner)).rejects.toThrow(
+    'journal_owner_mismatch',
+  )
+  expect((await loadOutbox(owner))[0]).toMatchObject({ entry: owned })
+})
+
 it('upgrades version one without deleting the saved mission', async () => {
   const database = await new Promise<IDBDatabase>((resolve) => {
     const request = indexedDB.open('onelap-local', 1)
@@ -118,6 +143,8 @@ it('corrupt stored observations fail visibly', async () => {
   })
   database.close()
   await expect(loadOutbox()).rejects.toThrow()
+  await expect(loadOutbox(null)).rejects.toThrow()
+  await expect(loadOutbox(owner)).rejects.toThrow()
 })
 it('concurrent removal and binding preserve deletion intent', async () => {
   await queueOuting(outing)

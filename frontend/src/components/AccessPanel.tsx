@@ -112,7 +112,10 @@ export function AccessPanel({
         )}
         <p className="small muted">
           Connection state and optional tokens stay in memory and are forgotten
-          on reload. Saved missions and notes remain until you remove them.
+          on reload. The last verified journal is remembered for offline access.
+          Disconnect returns to separate device-only notes; other journals
+          remain on this device until removed. This is not account
+          authentication or encryption.
         </p>
         <p className="small muted">
           Generation sends generic outing selections to Tinker. No location,

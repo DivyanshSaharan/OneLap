@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AccessPanel } from './components/AccessPanel'
 import { EmptyMission } from './components/EmptyMission'
 import { JournalPanel } from './components/JournalPanel'
@@ -16,11 +16,25 @@ import { useFollowUp } from './journal/useFollowUp'
 export default function App() {
   const online = useOnline()
   const state = useMission()
-  const journal = useJournal(state.accessToken, online, Boolean(state.status))
-  const followUp = useFollowUp(state.accessToken, online, Boolean(state.status))
+  const journal = useJournal(
+    state.accessToken,
+    online,
+    Boolean(state.status),
+    state.owner,
+  )
+  const followUp = useFollowUp(
+    state.accessToken,
+    online,
+    Boolean(state.status),
+    state.owner,
+  )
   const shell = useOfflineShell()
   const [pocket, setPocket] = useState(false)
   const [returning, setReturning] = useState(0)
+  useEffect(() => {
+    setPocket(false)
+    setReturning(0)
+  }, [state.owner])
   const busy =
     Boolean(state.busy) ||
     state.restoring ||
@@ -126,6 +140,7 @@ export default function App() {
           )}
           {!pocket && (
             <MissionBuilder
+              key={`builder:${state.owner ?? 'device'}`}
               disabled={!state.status?.enabled || state.restoring}
               locked={busy}
               busy={state.busy === 'generating'}
@@ -162,6 +177,7 @@ export default function App() {
         )}
         {!pocket && (
           <MissionImport
+            key={`import:${state.owner ?? 'device'}`}
             busy={busy}
             hasMission={Boolean(state.mission)}
             onImport={state.importMission}
@@ -169,6 +185,7 @@ export default function App() {
         )}
         {!pocket && (
           <JournalPanel
+            key={`journal:${state.owner ?? 'device'}`}
             journal={journal}
             followUp={followUp}
             mission={state.mission}

@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { useFollowUp } from './useFollowUp'
 import { mission } from '../test/fixtures'
-import { outing, owner } from './test-fixtures'
+import { otherOwner, outing, owner } from './test-fixtures'
 
 const mocks = vi.hoisted(() => ({ create: vi.fn(), status: vi.fn() }))
 vi.mock('./api', async (original) => ({
@@ -57,4 +57,41 @@ it('forgets a pending suggestion and its origin when the connection changes', as
   rerender({ token: 'different-connection' })
   expect(result.current.suggestion).toBeNull()
   expect(mocks.create).toHaveBeenCalledTimes(1)
+})
+
+it('never requests a follow-up for an owner outside the active local journal', async () => {
+  const { result } = renderHook(() => useFollowUp('', true, true, owner))
+  await act(async () => {
+    await result.current.check()
+  })
+  await act(async () => {
+    await result.current.generate(otherOwner, outing.id, [])
+  })
+  expect(mocks.create).not.toHaveBeenCalled()
+  expect(result.current.suggestion).toBeNull()
+})
+
+it('discards an old follow-up response after the journal changes without changing the token', async () => {
+  let release!: (value: typeof response) => void
+  mocks.create.mockReturnValue(
+    new Promise((resolve) => {
+      release = resolve
+    }),
+  )
+  const hook = renderHook(({ scope }) => useFollowUp('', true, true, scope), {
+    initialProps: { scope: owner },
+  })
+  await act(async () => {
+    await hook.result.current.check()
+  })
+  let pending!: Promise<boolean>
+  await act(async () => {
+    pending = hook.result.current.generate(owner, outing.id, [])
+  })
+  hook.rerender({ scope: otherOwner })
+  await act(async () => {
+    release(response)
+    await pending
+  })
+  expect(hook.result.current.suggestion).toBeNull()
 })

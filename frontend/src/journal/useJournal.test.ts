@@ -30,8 +30,14 @@ beforeEach(() => {
   })
 })
 
-async function ready(token = 'private-memory-token', online = true) {
-  const hook = renderHook(() => useJournal(token, online))
+async function ready(
+  token = 'private-memory-token',
+  online = true,
+  localOwner: string | null = owner,
+) {
+  const hook = renderHook(() =>
+    useJournal(token, online, Boolean(token), localOwner),
+  )
   await waitFor(() => expect(hook.result.current.restoring).toBe(false))
   return hook
 }
@@ -41,9 +47,71 @@ it('does not contact Atlas or AI on startup, including with private access', asy
   expect(mocks.send).not.toHaveBeenCalled()
   expect(mocks.page).not.toHaveBeenCalled()
 })
-it('supports explicitly connected local access without a token', async () => {
+
+it('hides device-only notes until explicitly reviewed, linked and separately synced', async () => {
   await queueOuting(outing)
-  const hook = renderHook(() => useJournal('', true, true))
+  const { result } = await ready()
+  expect(result.current.records).toEqual([])
+  expect(result.current.deviceNotes).toEqual([])
+  await act(async () => {
+    await result.current.check()
+  })
+  await act(async () => {
+    await result.current.sync([outing.id])
+  })
+  expect(mocks.send).not.toHaveBeenCalled()
+  await act(async () => {
+    await result.current.attachDeviceNotes([outing.id])
+  })
+  expect((await loadOutbox(null))[0]).toMatchObject({ owner_id: null })
+  await act(async () => {
+    await result.current.reviewDeviceNotes()
+  })
+  expect(result.current.deviceNotes[0]).toMatchObject({ entry: outing })
+  await act(async () => {
+    await result.current.attachDeviceNotes([outing.id])
+  })
+  expect(result.current.records[0]).toMatchObject({
+    owner_id: owner,
+    stage: 'pending',
+  })
+  expect(mocks.send).not.toHaveBeenCalled()
+  await act(async () => {
+    await result.current.sync([outing.id])
+  })
+  expect(mocks.send).toHaveBeenCalledTimes(1)
+})
+
+it('discards an old journal page arriving after the local identity changes', async () => {
+  let resolvePage!: (value: unknown) => void
+  mocks.page.mockReturnValue(
+    new Promise((resolve) => {
+      resolvePage = resolve
+    }),
+  )
+  const hook = renderHook(
+    ({ scope }) => useJournal('private-memory-token', true, true, scope),
+    { initialProps: { scope: owner } },
+  )
+  await waitFor(() => expect(hook.result.current.restoring).toBe(false))
+  await act(async () => {
+    await hook.result.current.check()
+  })
+  let pending!: Promise<boolean>
+  await act(async () => {
+    pending = hook.result.current.readCloud()
+  })
+  hook.rerender({ scope: otherOwner })
+  await act(async () => {
+    resolvePage({ entries: [{ entry: outing }], next_after: null })
+    await pending
+  })
+  expect(hook.result.current.cloud).toEqual([])
+  expect(hook.result.current.records).toEqual([])
+})
+it('supports explicitly connected local access without a token', async () => {
+  await queueOuting(outing, owner)
+  const hook = renderHook(() => useJournal('', true, true, owner))
   await waitFor(() => expect(hook.result.current.restoring).toBe(false))
   await act(async () => {
     await hook.result.current.check()
@@ -60,7 +128,7 @@ it('supports explicitly connected local access without a token', async () => {
   expect(hook.result.current.records[0]).toMatchObject({ stage: 'synced' })
 })
 it('captures an observation offline, with no cloud or model requests', async () => {
-  const { result } = await ready('', false)
+  const { result } = await ready('', false, null)
   await act(async () => {
     await result.current.capture(mission, {
       outcome: 'completed',
@@ -78,7 +146,7 @@ it('captures an observation offline, with no cloud or model requests', async () 
   expect(mocks.status).not.toHaveBeenCalled()
 })
 it('refreshes the outbox on remount without automatically uploading', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const first = await ready()
   first.unmount()
   const second = await ready()
@@ -86,7 +154,7 @@ it('refreshes the outbox on remount without automatically uploading', async () =
   expect(mocks.send).not.toHaveBeenCalled()
 })
 it('requires a manually checked owner before any sync', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const { result } = await ready()
   await act(async () => {
     await result.current.sync([outing.id])
@@ -105,7 +173,7 @@ it('requires a manually checked owner before any sync', async () => {
   })
 })
 it('retains the same owner, entry ID and content after a lost acknowledgment', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const { result } = await ready()
   await act(async () => {
     await result.current.check()
@@ -138,10 +206,10 @@ it('never uploads another owners bound records', async () => {
     await result.current.sync([outing.id])
   })
   expect(mocks.send).not.toHaveBeenCalled()
-  expect(result.current.records[0].owner_id).toBe(otherOwner)
+  expect(result.current.records).toEqual([])
 })
 it('does not upload a note added by another tab after consent was given', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const { result } = await ready()
   await act(async () => {
     await result.current.check()
@@ -157,7 +225,7 @@ it('does not upload a note added by another tab after consent was given', async 
   )
 })
 it('serializes pending synchronization and ignores duplicate submit', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const { result } = await ready()
   await act(async () => {
     await result.current.check()
@@ -183,7 +251,7 @@ it('serializes pending synchronization and ignores duplicate submit', async () =
   })
 })
 it('queues local removal and only forgets it after cloud deletion is confirmed', async () => {
-  await queueOuting(outing)
+  await queueOuting(outing, owner)
   const { result } = await ready()
   await act(async () => {
     await result.current.check()
@@ -203,9 +271,12 @@ it('queues local removal and only forgets it after cloud deletion is confirmed',
   expect(result.current.records).toEqual([])
 })
 it('clears cloud display and owner when private access is forgotten', async () => {
-  const hook = renderHook(({ token }) => useJournal(token, true), {
-    initialProps: { token: 'private-memory-token' },
-  })
+  const hook = renderHook(
+    ({ token }) => useJournal(token, true, Boolean(token), owner),
+    {
+      initialProps: { token: 'private-memory-token' },
+    },
+  )
   await waitFor(() => expect(hook.result.current.restoring).toBe(false))
   await act(async () => {
     await hook.result.current.check()

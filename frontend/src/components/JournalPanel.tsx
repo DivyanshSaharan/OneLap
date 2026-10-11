@@ -45,6 +45,7 @@ export function JournalPanel({
   const [consent, setConsent] = useState(false)
   const [approvedIds, setApprovedIds] = useState<string[]>([])
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [attachConsent, setAttachConsent] = useState(false)
   const details = useRef<HTMLDetailsElement>(null)
   const textarea = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
@@ -57,6 +58,7 @@ export function JournalPanel({
     setConsent(false)
     setApprovedIds([])
     setConfirming(null)
+    setAttachConsent(false)
   }, [journal.status?.owner_id, journal.records])
   const ready = journal.status?.enabled && connected && online
   const localIds = new Set(journal.records.map((row) => row.id))
@@ -258,6 +260,68 @@ export function JournalPanel({
             upload to a different owner.
           </p>
         )}
+        {ready && (
+          <details className="device-notes">
+            <summary>Recover device-only notes</summary>
+            <p className="small muted">
+              Notes saved before a journal was connected stay separate. Review
+              them here only if they are yours; linking is explicit and does not
+              upload them.
+            </p>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => {
+                setAttachConsent(false)
+                void journal.reviewDeviceNotes()
+              }}
+            >
+              Review device-only notes
+            </button>
+            {journal.deviceNotes.map(
+              (row) =>
+                row.kind === 'entry' && (
+                  <article className="journal-entry" key={row.id}>
+                    <h4>{row.entry.mission.mission.title}</h4>
+                    <p className="observation-text">
+                      {row.entry.observation || 'No observation recorded.'}
+                    </p>
+                  </article>
+                ),
+            )}
+            {journal.deviceNotes.length > 0 && (
+              <>
+                <label className="consent">
+                  <input
+                    type="checkbox"
+                    checked={attachConsent}
+                    disabled={busy}
+                    onChange={(event) => setAttachConsent(event.target.checked)}
+                  />
+                  <span>
+                    I reviewed these device-only notes. They are mine, and I
+                    want to link them to the currently connected journal. No
+                    cloud upload or AI request yet.
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={busy || !attachConsent}
+                  onClick={() => {
+                    setAttachConsent(false)
+                    void journal.attachDeviceNotes(
+                      journal.deviceNotes.map((row) => row.id),
+                    )
+                  }}
+                >
+                  Link reviewed notes to this journal
+                </button>
+              </>
+            )}
+          </details>
+        )}
         <label className="consent">
           <input
             type="checkbox"
@@ -271,8 +335,7 @@ export function JournalPanel({
                       .filter(
                         (row) =>
                           (row.kind === 'delete' || row.stage === 'pending') &&
-                          (row.owner_id === null ||
-                            row.owner_id === journal.status?.owner_id),
+                          row.owner_id === journal.status?.owner_id,
                       )
                       .map((row) => row.id)
                   : [],
@@ -282,7 +345,7 @@ export function JournalPanel({
           <span>
             For this sync, send eligible saved observations, feedback and
             mission snapshots to MongoDB Atlas, and apply pending deletions.
-            Unassigned notes will be linked to this journal. Nothing goes to
+            Only notes linked to this journal are eligible. Nothing goes to
             Tinker yet.
           </span>
         </label>
@@ -295,8 +358,7 @@ export function JournalPanel({
             !journal.records.some(
               (row) =>
                 (row.kind === 'delete' || row.stage === 'pending') &&
-                (row.owner_id === null ||
-                  row.owner_id === journal.status?.owner_id),
+                row.owner_id === journal.status?.owner_id,
             )
           }
           onClick={async () => {

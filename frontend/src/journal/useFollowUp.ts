@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { createFollowUp, getFollowUpStatus, journalError } from './api'
 import type { FollowUpStatus, FollowUpSuggestion } from './domain'
-import type { FollowUpOrigin } from '../storage'
+import type { FollowUpOrigin, LocalOwner } from '../storage'
 
 export function useFollowUp(
   token: string,
   online: boolean,
   connected: boolean,
+  localOwner?: LocalOwner,
 ) {
   const [status, setStatus] = useState<FollowUpStatus | null>(null)
   const [suggestion, setSuggestion] = useState<
@@ -21,13 +22,15 @@ export function useFollowUp(
   const currentConnection = useRef(connected)
   currentToken.current = token
   currentConnection.current = connected
+  const currentOwner = useRef(localOwner)
+  currentOwner.current = localOwner
 
   useEffect(() => {
     setStatus(null)
     setSuggestion(null)
     setError(null)
     setMessage(null)
-  }, [token, connected])
+  }, [token, connected, localOwner])
 
   useEffect(() => {
     alive.current = true
@@ -56,7 +59,10 @@ export function useFollowUp(
 
   return {
     status,
-    suggestion,
+    suggestion:
+      localOwner === undefined || suggestion?.origin.owner_id === localOwner
+        ? suggestion
+        : null,
     busy,
     error,
     message,
@@ -67,18 +73,26 @@ export function useFollowUp(
         if (
           alive.current &&
           currentConnection.current &&
-          currentToken.current === token
+          currentToken.current === token &&
+          currentOwner.current === localOwner
         )
           setStatus(result)
       }),
     generate: (owner: string, sourceId: string, contextIds: string[]) =>
       act(async () => {
-        if (!connected || !online || !status?.enabled) return
+        if (
+          !connected ||
+          !online ||
+          !status?.enabled ||
+          (localOwner !== undefined && owner !== localOwner)
+        )
+          return
         const result = await createFollowUp(token, owner, sourceId, contextIds)
         if (
           alive.current &&
           currentConnection.current &&
-          currentToken.current === token
+          currentToken.current === token &&
+          currentOwner.current === localOwner
         )
           setSuggestion({
             ...result,

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
   getStatus: vi.fn(),
   generate: vi.fn(),
+  journalStatus: vi.fn(),
 }))
 vi.mock('./storage', async (original) => ({
   ...(await original<typeof import('./storage')>()),
@@ -22,6 +23,10 @@ vi.mock('./api', async (original) => ({
   ...(await original<typeof import('./api')>()),
   getStatus: mocks.getStatus,
   generateMission: mocks.generate,
+}))
+vi.mock('./journal/api', async (original) => ({
+  ...(await original<typeof import('./journal/api')>()),
+  getJournalStatus: mocks.journalStatus,
 }))
 vi.mock('./hooks/useOfflineShell', () => ({
   useOfflineShell: () => ({
@@ -43,6 +48,12 @@ beforeEach(() => {
   mocks.clear.mockResolvedValue(undefined)
   mocks.getStatus.mockResolvedValue(status)
   mocks.generate.mockResolvedValue(mission)
+  mocks.journalStatus.mockResolvedValue({
+    enabled: false,
+    disabled_reason: 'journal_disabled',
+    owner_id: null,
+    data_boundary: 'Device-only mode.',
+  })
 })
 
 async function connect() {

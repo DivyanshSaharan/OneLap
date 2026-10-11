@@ -12,6 +12,7 @@ function state(
 ): ReturnType<typeof useJournal> {
   return {
     records: [],
+    deviceNotes: [],
     cloud: [],
     nextAfter: null,
     status: null,
@@ -27,6 +28,8 @@ function state(
     readCloud: vi.fn().mockResolvedValue(true),
     remove: vi.fn().mockResolvedValue(true),
     removeCloud: vi.fn().mockResolvedValue(true),
+    reviewDeviceNotes: vi.fn().mockResolvedValue(true),
+    attachDeviceNotes: vi.fn().mockResolvedValue(true),
     ...overrides,
   }
 }
@@ -119,7 +122,7 @@ it('requires explicit consent and only submits IDs present at consent time', asy
         version: 1,
         kind: 'entry',
         id: outing.id,
-        owner_id: null,
+        owner_id: owner,
         stage: 'pending',
         entry: outing,
       },
@@ -158,6 +161,36 @@ it('requires confirmation before removing an observation', async () => {
   expect(journal.remove).not.toHaveBeenCalled()
   await userEvent.click(screen.getByRole('button', { name: 'Confirm removal' }))
   expect(journal.remove).toHaveBeenCalledExactlyOnceWith(outing.id)
+})
+
+it('requires a separate review confirmation before linking device-only notes to a journal', async () => {
+  const journal = state({
+    status: journalStatus,
+    deviceNotes: [
+      {
+        version: 1,
+        kind: 'entry',
+        id: outing.id,
+        owner_id: null,
+        stage: 'pending',
+        entry: outing,
+      },
+    ],
+  })
+  render(<JournalPanel {...props} connected online journal={journal} />)
+  fireEvent.click(screen.getByText('Recover device-only notes'))
+  const link = screen.getByRole('button', {
+    name: 'Link reviewed notes to this journal',
+  })
+  expect(link).toBeDisabled()
+  await userEvent.click(
+    screen.getByRole('checkbox', {
+      name: /I reviewed these device-only notes/,
+    }),
+  )
+  await userEvent.click(link)
+  expect(journal.attachDeviceNotes).toHaveBeenCalledExactlyOnceWith([outing.id])
+  expect(journal.sync).not.toHaveBeenCalled()
 })
 it('returning from pocket mode opens the form and focuses observation entry', async () => {
   render(<JournalPanel {...props} returning={1} journal={state()} />)

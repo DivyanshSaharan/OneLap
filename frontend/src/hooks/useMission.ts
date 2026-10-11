@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { explain, generateMission, getStatus } from '../api'
 import type { MissionRequest, MissionResponse, ProviderStatus } from '../domain'
+import { getJournalStatus } from '../journal/api'
 import {
   clearMission,
   loadMission,
+  loadLocalOwner,
   parseFollowUpOrigin,
   saveMission,
+  saveLocalOwner,
+  type LocalOwner,
   type FollowUpOrigin,
   type MissionSource,
 } from '../storage'
@@ -18,6 +22,8 @@ export function useMission() {
   const lock = useRef(false)
   const alive = useRef(true)
   const [token, setToken] = useState('')
+  const [owner, setOwner] = useState<LocalOwner>(null)
+  const currentOwner = useRef<LocalOwner>(null)
   const [status, setStatus] = useState<ProviderStatus | null>(null)
   const [mission, setMission] = useState<MissionResponse | null>(null)
   const [missionSource, setMissionSource] = useState<MissionSource>('generated')
@@ -31,7 +37,15 @@ export function useMission() {
   useEffect(() => {
     alive.current = true
     let cancelled = false
-    loadMission()
+    loadLocalOwner()
+      .then(async (restoredOwner) => {
+        const record = await loadMission(restoredOwner)
+        if (!cancelled) {
+          currentOwner.current = restoredOwner
+          setOwner(restoredOwner)
+        }
+        return record
+      })
       .then((record) => {
         if (!cancelled && record) {
           setMission(record.response)
@@ -54,6 +68,39 @@ export function useMission() {
       alive.current = false
     }
   }, [])
+
+  async function switchOwner(nextOwner: LocalOwner) {
+    if (currentOwner.current === nextOwner) return
+    const record = await loadMission(nextOwner)
+    await saveLocalOwner(nextOwner)
+    if (!alive.current) return
+    currentOwner.current = nextOwner
+    setOwner(nextOwner)
+    setMission(record?.response ?? null)
+    setMissionSource(record?.source ?? 'generated')
+    setFollowUpOrigin(record?.followUpOrigin ?? null)
+    setSaved(Boolean(record))
+    setStorageError(null)
+  }
+
+  async function writeMission(
+    response: MissionResponse,
+    source: MissionSource,
+    origin: FollowUpOrigin | null,
+  ) {
+    if (origin && origin.owner_id !== currentOwner.current)
+      throw new Error('saved_mission_invalid')
+    if (currentOwner.current !== null)
+      return saveMission(
+        response,
+        source,
+        origin ?? undefined,
+        currentOwner.current,
+      )
+    if (origin) return saveMission(response, source, origin)
+    if (source === 'imported') return saveMission(response, source)
+    return saveMission(response)
+  }
 
   async function act(
     kind: NonNullable<typeof busy>,
@@ -88,9 +135,7 @@ export function useMission() {
     origin: FollowUpOrigin | null = null,
   ) {
     try {
-      if (origin) await saveMission(response, source, origin)
-      else if (source === 'imported') await saveMission(response, source)
-      else await saveMission(response)
+      await writeMission(response, source, origin)
       if (alive.current) {
         setSaved(true)
         setStorageError(null)
@@ -118,9 +163,8 @@ export function useMission() {
           throw new Error('saved_mission_invalid')
         if (origin) {
           validatedOrigin = parseFollowUpOrigin(origin)
-          await saveMission(response, source, validatedOrigin)
-        } else if (source === 'imported') await saveMission(response, source)
-        else await saveMission(response)
+          await writeMission(response, source, validatedOrigin)
+        } else await writeMission(response, source, null)
       } catch {
         if (alive.current)
           setStorageError(
@@ -152,11 +196,14 @@ export function useMission() {
     error,
     storageError,
     accessToken: token,
+    owner,
     connect: async (candidate: string) => {
       await act('connecting', async () => {
         setStatus(null)
         setToken('')
         const result = await getStatus(candidate)
+        const journal = await getJournalStatus(candidate)
+        await switchOwner(journal.enabled ? journal.owner_id : null)
         if (alive.current) {
           setToken(candidate)
           setStatus(result)
@@ -164,11 +211,25 @@ export function useMission() {
       })
     },
     disconnect: () => {
-      if (!lock.current) {
+      void act('connecting', async () => {
         setToken('')
         setStatus(null)
         setError(null)
-      }
+        // Hide the previous journal immediately, even if local storage fails.
+        setMission(null)
+        setFollowUpOrigin(null)
+        setSaved(false)
+        currentOwner.current = null
+        setOwner(null)
+        await saveLocalOwner(null)
+        const record = await loadMission()
+        if (alive.current) {
+          setMission(record?.response ?? null)
+          setMissionSource(record?.source ?? 'generated')
+          setFollowUpOrigin(record?.followUpOrigin ?? null)
+          setSaved(Boolean(record))
+        }
+      })
     },
     generate: async (input: MissionRequest) => {
       await act('generating', async () => {
@@ -193,7 +254,9 @@ export function useMission() {
     clear: () =>
       act('clearing', async () => {
         try {
-          await clearMission()
+          if (currentOwner.current !== null)
+            await clearMission(currentOwner.current)
+          else await clearMission()
         } catch {
           setStorageError(
             'The saved mission could not be removed. It may still be on this device.',

@@ -1,12 +1,73 @@
 import { expect, test, type BrowserContext } from '@playwright/test'
 import { mission, status } from '../src/test/fixtures'
-import { journalStatus, owner } from '../src/journal/test-fixtures'
+import { journalStatus, otherOwner, owner } from '../src/journal/test-fixtures'
 
 const fixture = {
   ...mission,
   mission: { ...mission.mission, title: 'E2E fixture — not model output' },
 }
 const token = 'fictional-browser-test-token-only'
+
+test('changing journals isolates missions and notes while retaining device-only data separately', async ({
+  page,
+  context,
+}) => {
+  await fixtureApi(context)
+  let activeOwner = owner
+  await context.route('**/api/journal/status', (route) =>
+    route.fulfill({ json: { ...journalStatus, owner_id: activeOwner } }),
+  )
+  await page.goto('/')
+  await page.getByText('Backend connection', { exact: true }).click()
+  await page.getByRole('button', { name: 'Connect to local backend' }).click()
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await page
+    .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
+    .check()
+  await page.getByRole('button', { name: /Create my small outing/ }).click()
+  await expect(
+    page.getByRole('heading', { name: fixture.mission.title }),
+  ).toBeVisible()
+  await page.getByText('Record an observation', { exact: true }).click()
+  await page
+    .getByLabel('What did you notice?')
+    .fill('Journal A fictional private note.')
+  await page
+    .getByRole('button', { name: 'Save observation on this device' })
+    .click()
+  await expect(
+    page.getByText('Journal A fictional private note.', { exact: true }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Disconnect', exact: true }).click()
+  await expect(
+    page.getByText('Journal A fictional private note.', { exact: true }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: fixture.mission.title }),
+  ).toHaveCount(0)
+  activeOwner = otherOwner
+  await page.getByRole('button', { name: 'Connect to local backend' }).click()
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('Journal A fictional private note.', { exact: true }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: fixture.mission.title }),
+  ).toHaveCount(0)
+  await page.reload()
+  await expect(
+    page.getByText('Journal A fictional private note.', { exact: true }),
+  ).toHaveCount(0)
+  await page.getByText('Backend connection', { exact: true }).click()
+  activeOwner = owner
+  await page.getByRole('button', { name: 'Connect to local backend' }).click()
+  await expect(
+    page.getByRole('heading', { name: fixture.mission.title, level: 2 }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Journal A fictional private note.', { exact: true }),
+  ).toBeVisible()
+})
 
 test('imports a reviewed local fixture offline and retains its unverified label on reload', async ({
   page,
@@ -109,6 +170,8 @@ async function fixtureApi(
         focus: 'general',
       })
       await route.fulfill({ status: 201, json: fixture })
+    } else if (request.url().endsWith('/api/journal/status')) {
+      await route.fulfill({ json: journalStatus })
     } else throw new Error('unexpected_private_request')
   })
   return requests
@@ -154,7 +217,7 @@ test('production app reopens a saved fixture offline without credentials or anot
   await expect(
     page.getByText('Saved on this device · ready to reopen offline'),
   ).toBeVisible()
-  expect(requests).toHaveLength(2)
+  expect(requests).toHaveLength(3)
   await page.getByRole('button', { name: /I’m heading out/ }).click()
   await expect(
     page.getByText(/does not mark this mission complete/),
@@ -173,7 +236,7 @@ test('production app reopens a saved fixture offline without credentials or anot
   await expect(
     page.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
-  expect(requests).toHaveLength(2)
+  expect(requests).toHaveLength(3)
   expect(
     await page.evaluate(() => ({
       local: localStorage.length,
@@ -248,7 +311,7 @@ test('a disabled hosted provider never permits mission generation', async ({
   await expect(
     page.getByRole('button', { name: /Create my small outing/ }),
   ).toBeDisabled()
-  expect(requests).toHaveLength(1)
+  expect(requests).toHaveLength(2)
 })
 
 test('offline observations survive reload and explicit sync safely replays a lost reply', async ({
