@@ -7,9 +7,10 @@ from typing import Protocol
 from pydantic import ValidationError
 
 from .budget import InferenceLedger, reservation
+from .checkpoint import load_checkpoint
 from .config import MODEL, Settings
 from .errors import MissionError
-from .models import MissionPlan, ProviderStatus
+from .models import GenerationIdentity, MissionPlan, ProviderStatus
 from .provider_json import unique_keys
 from .tracing import Tracer
 
@@ -34,13 +35,14 @@ def parse_plan(text: str) -> MissionPlan:
 
 
 class TinkerRuntime:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, checkpoint: str | None = None):
         import tinker
         from tinker.lib.retry_handler import RetryConfig
 
         service = tinker.ServiceClient(api_key=api_key)
+        selection = {"model_path": checkpoint} if checkpoint else {"base_model": MODEL}
         self.client = service.create_sampling_client(
-            base_model=MODEL,
+            **selection,
             retry_config=RetryConfig(enable_retry_logic=False, progress_timeout=45),
         )
         if self.client.get_base_model() != MODEL:
@@ -85,7 +87,12 @@ class TinkerProvider:
     ):
         self.settings = settings
         self.ledger = ledger
-        self._factory = runtime_factory
+        self._checkpoint = load_checkpoint(settings)
+        self._factory = (
+            (lambda key: TinkerRuntime(key, self._checkpoint.path if self._checkpoint else None))
+            if runtime_factory is TinkerRuntime
+            else runtime_factory
+        )
         self._available = sdk_available or (
             lambda: all(
                 importlib.util.find_spec(name) for name in ("tinker", "transformers", "jinja2")
@@ -95,6 +102,16 @@ class TinkerProvider:
         self._lock = Lock()
         self._failed = False
         self.tracer = Tracer()
+
+    def identity(self, prompt_version="mission-v1") -> GenerationIdentity:
+        return GenerationIdentity(
+            target=self.settings.model_target,
+            prompt_version=prompt_version,
+            checkpoint_sha256=self._checkpoint.receipt_sha256 if self._checkpoint else None,
+            training_dataset_sha256=(
+                self._checkpoint.training_dataset_sha256 if self._checkpoint else None
+            ),
+        )
 
     def status(self) -> ProviderStatus:
         reason = self.settings.disabled_reason()
@@ -109,6 +126,7 @@ class TinkerProvider:
             reason = "model_request_limit_reached"
         return ProviderStatus(
             model=MODEL,
+            target=self.settings.model_target,
             enabled=reason is None,
             disabled_reason=reason,
             estimated_reserved_usd=data["reserved_microdollars"] / 1_000_000,

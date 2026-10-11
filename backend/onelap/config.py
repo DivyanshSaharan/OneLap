@@ -30,8 +30,24 @@ class Settings:
     atlas_budget_approved: bool = False
     budget_import_microdollars: int | None = None
     budget_import_requests: int | None = None
+    model_target: str = "base"
+    checkpoint_approved: bool = False
+    checkpoint_receipt: Path | None = field(default=None, repr=False)
+    checkpoint_receipt_sha256: str = ""
 
     def __post_init__(self):
+        if self.model_target not in {"base", "adapter"}:
+            raise ValueError("Model target must be base or adapter")
+        if self.model_target == "adapter":
+            if (
+                self.checkpoint_approved is not True
+                or not isinstance(self.checkpoint_receipt, Path)
+                or len(self.checkpoint_receipt_sha256) != 64
+                or any(char not in "0123456789abcdef" for char in self.checkpoint_receipt_sha256)
+            ):
+                raise ValueError("Adapter selection requires an approved, hash-bound receipt")
+        elif self.checkpoint_approved or self.checkpoint_receipt or self.checkpoint_receipt_sha256:
+            raise ValueError("Base selection must not claim an adapter receipt")
         if self.access_token and not (32 <= len(self.access_token) <= 256):
             raise ValueError("Access token must be 32-256 characters")
         if self.access_token and not self.access_token.isascii():
@@ -93,6 +109,14 @@ class Settings:
             atlas_budget_approved=boolean("ONELAP_ATLAS_BUDGET_APPROVED"),
             budget_import_microdollars=import_budget,
             budget_import_requests=import_requests,
+            model_target=os.environ.get("ONELAP_MODEL_TARGET", "base"),
+            checkpoint_approved=boolean("ONELAP_CHECKPOINT_APPROVED"),
+            checkpoint_receipt=(
+                Path(os.environ["ONELAP_CHECKPOINT_RECEIPT"])
+                if os.environ.get("ONELAP_CHECKPOINT_RECEIPT")
+                else None
+            ),
+            checkpoint_receipt_sha256=os.environ.get("ONELAP_CHECKPOINT_RECEIPT_SHA256", ""),
         )
 
     def disabled_reason(self) -> str | None:

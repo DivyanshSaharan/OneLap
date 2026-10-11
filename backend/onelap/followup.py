@@ -132,6 +132,10 @@ class FollowUpService:
         response = MissionResponse(
             id=uuid4(),
             mission=output.mission,
-            generation=GenerationIdentity(prompt_version="follow-up-v2"),
+            generation=(
+                self.provider.identity("follow-up-v2")
+                if hasattr(self.provider, "identity")
+                else GenerationIdentity(prompt_version="follow-up-v2")
+            ),
         )
         return output.reflection, response

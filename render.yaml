@@ -17,6 +17,10 @@ services:
         sync: false
       - key: ONELAP_HOSTED_REQUESTS_ENABLED
         value: 'false'
+      - key: ONELAP_MODEL_TARGET
+        value: base
+      - key: ONELAP_CHECKPOINT_APPROVED
+        value: 'false'
       - key: ONELAP_DATA_SHARING_APPROVED
         value: 'false'
       - key: ONELAP_REFLECTION_SHARING_APPROVED

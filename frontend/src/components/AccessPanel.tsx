@@ -38,7 +38,11 @@ export function AccessPanel({
       <div className="access-content">
         {status ? (
           <>
-            <p className="small">{status.model} · base model · Tinker</p>
+            <p className="small">
+              {status.model} ·{' '}
+              {status.target === 'adapter' ? 'trained adapter' : 'base model'} ·
+              Tinker
+            </p>
             {!status.enabled && (
               <p className="small">
                 {explain(

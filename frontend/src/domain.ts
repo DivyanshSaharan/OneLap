@@ -22,15 +22,17 @@ export interface MissionResponse {
   generation: {
     provider: 'tinker'
     model: 'Qwen/Qwen3.5-4B'
-    target: 'base'
+    target: 'base' | 'adapter'
     prompt_version: 'mission-v1' | 'follow-up-v1' | 'follow-up-v2'
+    checkpoint_sha256?: string
+    training_dataset_sha256?: string
   }
   safety_note: string
 }
 
 export interface ProviderStatus {
   model: string
-  target: 'base'
+  target: 'base' | 'adapter'
   enabled: boolean
   disabled_reason: string | null
   estimated_reserved_usd: number
@@ -85,7 +87,15 @@ export function parseMission(value: unknown): MissionResponse {
     'phone_use',
   ])
   const generation = object(response.generation)
-  keys(generation, ['provider', 'model', 'target', 'prompt_version'])
+  keys(generation, [
+    'provider',
+    'model',
+    'target',
+    'prompt_version',
+    ...(generation.target === 'adapter'
+      ? ['checkpoint_sha256', 'training_dataset_sha256']
+      : []),
+  ])
   if (
     typeof response.id !== 'string' ||
     !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(response.id) ||
@@ -100,7 +110,11 @@ export function parseMission(value: unknown): MissionResponse {
     mission.phone_use !== 'none_during_outing' ||
     generation.provider !== 'tinker' ||
     generation.model !== 'Qwen/Qwen3.5-4B' ||
-    generation.target !== 'base' ||
+    !['base', 'adapter'].includes(generation.target as string) ||
+    (generation.target === 'adapter' &&
+      [generation.checkpoint_sha256, generation.training_dataset_sha256].some(
+        (hash) => typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash),
+      )) ||
     !['mission-v1', 'follow-up-v1', 'follow-up-v2'].includes(
       generation.prompt_version as string,
     ) ||
@@ -132,7 +146,7 @@ export function parseStatus(value: unknown): ProviderStatus {
   ]
   if (
     status.model !== 'Qwen/Qwen3.5-4B' ||
-    status.target !== 'base' ||
+    !['base', 'adapter'].includes(status.target as string) ||
     typeof status.enabled !== 'boolean' ||
     !(status.disabled_reason === null || text(status.disabled_reason, 80)) ||
     (status.enabled && status.disabled_reason !== null) ||

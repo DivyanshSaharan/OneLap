@@ -24,6 +24,7 @@ from .provider_json import unique_keys
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATASET = ROOT / "datasets" / "onelap-seed-v1.json"
 METHOD_FILES = (
+    "checkpoint.py",
     "evaluation.py",
     "evaluation_models.py",
     "followup.py",

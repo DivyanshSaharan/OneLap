@@ -2,7 +2,15 @@ import unicodedata
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    StringConstraints,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 
 def exact_integer(value: object) -> object:
@@ -61,8 +69,25 @@ class MissionPlan(StrictModel):
 class GenerationIdentity(StrictModel):
     provider: Literal["tinker"] = "tinker"
     model: Literal["Qwen/Qwen3.5-4B"] = "Qwen/Qwen3.5-4B"
-    target: Literal["base"] = "base"
+    target: Literal["base", "adapter"] = "base"
     prompt_version: Literal["mission-v1", "follow-up-v1", "follow-up-v2"] = "mission-v1"
+    checkpoint_sha256: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")] | None = None
+    training_dataset_sha256: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")] | None = (
+        None
+    )
+
+    @model_validator(mode="after")
+    def checkpoint_binding(self):
+        hashes = (self.checkpoint_sha256, self.training_dataset_sha256)
+        if self.target == "base" and any(value is not None for value in hashes):
+            raise ValueError("Base generation must not claim an adapter")
+        if self.target == "adapter" and any(value is None for value in hashes):
+            raise ValueError("Adapter generation requires checkpoint and training hashes")
+        return self
+
+    @model_serializer(mode="wrap")
+    def omit_unused_hashes(self, handler):
+        return {key: value for key, value in handler(self).items() if value is not None}
 
 
 class MissionResponse(StrictModel):
@@ -77,7 +102,7 @@ class MissionResponse(StrictModel):
 
 class ProviderStatus(StrictModel):
     model: str
-    target: Literal["base"] = "base"
+    target: Literal["base", "adapter"] = "base"
     enabled: bool
     disabled_reason: str | None
     estimated_reserved_usd: float

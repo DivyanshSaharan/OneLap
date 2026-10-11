@@ -22,6 +22,7 @@ RUN python -m pip install --no-cache-dir --disable-pip-version-check \
     -r backend/requirements-tracing.txt
 
 COPY backend/onelap ./backend/onelap
+COPY datasets/onelap-sft-v1.manifest.json ./datasets/onelap-sft-v1.manifest.json
 COPY --from=frontend /build/dist ./dist
 
 RUN addgroup --system onelap \

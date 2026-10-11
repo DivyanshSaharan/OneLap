@@ -3,6 +3,34 @@ import { parseMission, parseStatus } from './domain'
 import { mission, status } from './test/fixtures'
 
 describe('mission response contract', () => {
+  it('accepts a hash-bound adapter without exposing its private path', () => {
+    const response = {
+      ...mission,
+      generation: {
+        ...mission.generation,
+        target: 'adapter',
+        checkpoint_sha256: 'a'.repeat(64),
+        training_dataset_sha256: 'b'.repeat(64),
+      },
+    }
+    expect(parseMission(response)).toEqual(response)
+  })
+  it.each([
+    { target: 'adapter' },
+    {
+      target: 'adapter',
+      checkpoint_sha256: 'bad',
+      training_dataset_sha256: 'b'.repeat(64),
+    },
+    { target: 'base', checkpoint_sha256: 'a'.repeat(64) },
+  ])('rejects inconsistent adapter provenance', (changes) => {
+    expect(() =>
+      parseMission({
+        ...mission,
+        generation: { ...mission.generation, ...changes },
+      }),
+    ).toThrow()
+  })
   it('accepts the current backend response', () =>
     expect(parseMission(mission)).toEqual(mission))
   it.each(['follow-up-v1', 'follow-up-v2'])(
@@ -61,6 +89,9 @@ describe('mission response contract', () => {
 })
 
 describe('status response contract', () => {
+  it('accepts an explicitly selected adapter', () => {
+    expect(parseStatus({ ...status, target: 'adapter' }).target).toBe('adapter')
+  })
   it('accepts current backend status', () =>
     expect(parseStatus(status)).toEqual(status))
   it.each([

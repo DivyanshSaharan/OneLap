@@ -14,4 +14,9 @@ class MissionService:
         plan = self.provider.generate(build_messages(request))
         with self.provider.tracer.span("mission_validation"):
             validate_plan(plan, request)
-        return MissionResponse(id=uuid4(), mission=plan, generation=GenerationIdentity())
+        identity = getattr(self.provider, "identity", None)
+        return MissionResponse(
+            id=uuid4(),
+            mission=plan,
+            generation=identity() if identity else GenerationIdentity(),
+        )
