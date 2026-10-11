@@ -62,6 +62,61 @@ beforeEach(() => {
   })
 })
 
+it('restores the saved account mission even when Google reconnects the same owner', async () => {
+  const { result } = renderHook(useMission)
+  await waitFor(() => expect(result.current.restoring).toBe(false))
+  await act(async () => {
+    await result.current.connectAccount(owner)
+  })
+  expect(result.current.mission).toEqual(mission)
+  expect(result.current.saved).toBe(true)
+  expect(result.current.owner).toBe(owner)
+})
+
+it('keeps account storage scoped even when Atlas note sharing is disabled', async () => {
+  mocks.journalStatus.mockResolvedValue({
+    enabled: false,
+    disabled_reason: 'journal_disabled',
+    owner_id: null,
+    data_boundary: 'Device only.',
+  })
+  const { result } = renderHook(useMission)
+  await waitFor(() => expect(result.current.restoring).toBe(false))
+  await act(async () => {
+    await result.current.connectAccount(owner)
+  })
+  expect(result.current.owner).toBe(owner)
+  expect(result.current.mission).toEqual(mission)
+})
+
+it('never saves a late generation into the signed-out device area', async () => {
+  let reply!: (value: typeof mission) => void
+  mocks.generate.mockImplementationOnce(
+    () =>
+      new Promise<typeof mission>((resolve) => {
+        reply = resolve
+      }),
+  )
+  const { result } = renderHook(useMission)
+  await waitFor(() => expect(result.current.restoring).toBe(false))
+  await act(async () => {
+    await result.current.connectAccount(owner)
+  })
+  let pending!: Promise<void>
+  act(() => {
+    pending = result.current.generate(mission.mission)
+  })
+  await act(async () => {
+    await result.current.disconnect()
+  })
+  await act(async () => {
+    reply(mission)
+    await pending
+  })
+  expect(result.current.owner).toBeNull()
+  expect(mocks.save).not.toHaveBeenCalled()
+})
+
 it('restores source references without fetching notes or connecting to the model', async () => {
   mocks.load.mockResolvedValue({
     version: 1,

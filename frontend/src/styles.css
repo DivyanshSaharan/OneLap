@@ -889,3 +889,13 @@ select {
     padding: 23px;
   }
 }
+.sign-in-panel {
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line, #ddd);
+  border-radius: 1rem;
+}
+
+.sign-in-panel .text-button {
+  margin-left: 0.75rem;
+}

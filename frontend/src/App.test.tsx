@@ -1,7 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
-import App from './App'
+import { Workspace } from './App'
+import { useMission } from './hooks/useMission'
+import { useAuth } from './auth/useAuth'
+import { useOfflineShell } from './hooks/useOfflineShell'
+import { useOnline } from './hooks/useOnline'
 import { ApiError } from './api'
 import { mission, status } from './test/fixtures'
 
@@ -35,6 +39,28 @@ vi.mock('./hooks/useOfflineShell', () => ({
     update: vi.fn(),
   }),
 }))
+vi.mock('./auth/useAuth', () => ({
+  useAuth: () => ({
+    session: { enabled: false, client_id: null, owner_id: null, csrf: null },
+    busy: false,
+    error: null,
+    authenticated: false,
+  }),
+}))
+
+// Workspace behavior is tested separately from the mandatory entry gate.
+function App() {
+  const state = useMission()
+  const online = useOnline()
+  const auth = useAuth(
+    online,
+    state.restoring,
+    state.connectAccount,
+    state.disconnect,
+  )
+  const shell = useOfflineShell()
+  return <Workspace state={state} auth={auth} online={online} shell={shell} />
+}
 
 beforeEach(() => {
   vi.restoreAllMocks()
@@ -285,7 +311,9 @@ it('shows pending work, prevents duplicate submission, saves once and exposes po
   expect(mocks.generate).toHaveBeenCalledTimes(1)
   await act(async () => resolve(mission))
   await screen.findByRole('heading', { name: 'Notice a small contrast' })
-  await screen.findByText('Saved on this device · ready to reopen offline')
+  await screen.findByText(
+    'Saved on this device · keep this page open when offline',
+  )
   expect(mocks.save).toHaveBeenCalledExactlyOnceWith(mission)
   await userEvent.click(screen.getByRole('button', { name: /I’m heading out/ }))
   expect(
@@ -349,7 +377,9 @@ it('reports storage failure without claiming offline readiness', async () => {
     screen.getByRole('button', { name: 'Try saving again' }),
   ).toBeInTheDocument()
   expect(
-    screen.queryByText('Saved on this device · ready to reopen offline'),
+    screen.queryByText(
+      'Saved on this device · keep this page open when offline',
+    ),
   ).not.toBeInTheDocument()
 })
 it('clears local missions only after storage confirms deletion', async () => {

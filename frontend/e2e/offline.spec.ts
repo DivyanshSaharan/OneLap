@@ -6,7 +6,6 @@ const fixture = {
   ...mission,
   mission: { ...mission.mission, title: 'E2E fixture — not model output' },
 }
-const token = 'fictional-browser-test-token-only'
 
 test('changing journals isolates missions and notes while retaining device-only data separately', async ({
   page,
@@ -14,13 +13,23 @@ test('changing journals isolates missions and notes while retaining device-only 
 }) => {
   await fixtureApi(context)
   let activeOwner = owner
+  await context.route('**/api/auth/session', (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        client_id: 'fixture.apps.googleusercontent.com',
+        owner_id: activeOwner,
+        csrf: 'a'.repeat(43),
+      },
+    }),
+  )
   await context.route('**/api/journal/status', (route) =>
     route.fulfill({ json: { ...journalStatus, owner_id: activeOwner } }),
   )
   await page.goto('/')
-  await page.getByText('Backend connection', { exact: true }).click()
-  await page.getByRole('button', { name: 'Connect to local backend' }).click()
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Sign out', exact: true }),
+  ).toBeEnabled()
   await page
     .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
     .check()
@@ -38,16 +47,11 @@ test('changing journals isolates missions and notes while retaining device-only 
   await expect(
     page.getByText('Journal A fictional private note.', { exact: true }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Disconnect', exact: true }).click()
-  await expect(
-    page.getByText('Journal A fictional private note.', { exact: true }),
-  ).toHaveCount(0)
-  await expect(
-    page.getByRole('heading', { name: fixture.mission.title }),
-  ).toHaveCount(0)
   activeOwner = otherOwner
-  await page.getByRole('button', { name: 'Connect to local backend' }).click()
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await page.reload()
+  await expect(
+    page.getByRole('button', { name: 'Sign out', exact: true }),
+  ).toBeEnabled()
   await expect(
     page.getByText('Journal A fictional private note.', { exact: true }),
   ).toHaveCount(0)
@@ -58,9 +62,8 @@ test('changing journals isolates missions and notes while retaining device-only 
   await expect(
     page.getByText('Journal A fictional private note.', { exact: true }),
   ).toHaveCount(0)
-  await page.getByText('Backend connection', { exact: true }).click()
   activeOwner = owner
-  await page.getByRole('button', { name: 'Connect to local backend' }).click()
+  await page.reload()
   await expect(
     page.getByRole('heading', { name: fixture.mission.title, level: 2 }),
   ).toBeVisible()
@@ -69,14 +72,16 @@ test('changing journals isolates missions and notes while retaining device-only 
   ).toBeVisible()
 })
 
-test('imports a reviewed local fixture offline and retains its unverified label on reload', async ({
+test('imports offline after sign-in, locks on offline reload and restores after verification', async ({
   page,
   context,
 }) => {
   const requests = await fixtureApi(context)
   await page.goto('/')
   await expect(
-    page.getByText('Save a mission here before going offline.'),
+    page.getByText(
+      'Save a mission before going offline. Reopening needs sign-in verification.',
+    ),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
   await expect(page.getByLabel('Mission JSON file')).toBeEnabled()
@@ -115,7 +120,7 @@ test('imports a reviewed local fixture offline and retains its unverified label 
     page.getByText('Imported file · model provenance not verified'),
   ).toBeVisible()
   await expect(
-    page.getByText('Saved on this device · ready to reopen offline'),
+    page.getByText('Saved on this device · keep this page open when offline'),
   ).toBeVisible()
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 844 })
@@ -126,6 +131,14 @@ test('imports a reviewed local fixture offline and retains its unverified label 
     ).toBe(true)
   }
   await page.reload()
+  await expect(page.getByText(/Connect to verify your sign-in/)).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: imported.mission.title }),
+  ).toHaveCount(0)
+  expect(requests.filter((url) => url.endsWith('/api/missions'))).toHaveLength(
+    0,
+  )
+  await context.setOffline(false)
   await expect(
     page.getByRole('heading', { name: imported.mission.title }),
   ).toBeVisible()
@@ -136,21 +149,31 @@ test('imports a reviewed local fixture offline and retains its unverified label 
   await expect(
     page.getByText('Imported file · model provenance not verified'),
   ).toBeVisible()
-  expect(requests).toHaveLength(0)
+  expect(requests.filter((url) => url.endsWith('/api/missions'))).toHaveLength(
+    0,
+  )
 })
 
-async function fixtureApi(
-  context: BrowserContext,
-  enabled = true,
-  protectedAccess = false,
-) {
+async function fixtureApi(context: BrowserContext, enabled = true) {
   const requests: string[] = []
   await context.route('**/api/**', async (route) => {
     const request = route.request()
+    if (request.url().endsWith('/api/auth/session')) {
+      expect(request.headers().authorization).toBeUndefined()
+      await route.fulfill({
+        json: {
+          enabled: true,
+          client_id: 'fixture.apps.googleusercontent.com',
+          owner_id: owner,
+          csrf: 'a'.repeat(43),
+        },
+      })
+      return
+    }
     requests.push(request.url())
-    expect(request.headers().authorization).toBe(
-      protectedAccess ? `Bearer ${token}` : undefined,
-    )
+    expect(request.headers().authorization).toBeUndefined()
+    if (request.method() !== 'GET')
+      expect(request.headers()['x-onelap-csrf']).toBe('a'.repeat(43))
     if (request.url().endsWith('/api/model/status')) {
       await route.fulfill({
         json: {
@@ -175,11 +198,11 @@ async function fixtureApi(
   return requests
 }
 
-test('production app reopens a saved fixture offline without credentials or another model call', async ({
+test('a verified open app reads offline but reopening requires session verification', async ({
   page,
   context,
 }) => {
-  const requests = await fixtureApi(context, true, true)
+  const requests = await fixtureApi(context)
   page.on('console', (message) => {
     if (message.type() === 'error')
       console.error('Browser test:', message.text())
@@ -193,16 +216,13 @@ test('production app reopens a saved fixture offline without credentials or anot
   )
   await page.goto('/')
   await expect(
-    page.getByText('Save a mission here before going offline.'),
+    page.getByText(
+      'Save a mission before going offline. Reopening needs sign-in verification.',
+    ),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
-  expect(requests).toHaveLength(0)
+  expect(requests).toHaveLength(2)
   await expect(page.getByText('An app update is ready.')).toHaveCount(0)
-  await page.getByText('Backend connection', { exact: true }).click()
-  await page.getByText('Protected server (optional)', { exact: true }).click()
-  await page.getByLabel('Server access token').fill(token)
-  await page.getByRole('button', { name: 'Connect', exact: true }).click()
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
   await page
     .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
     .check()
@@ -211,7 +231,7 @@ test('production app reopens a saved fixture offline without credentials or anot
     page.getByRole('heading', { name: fixture.mission.title }),
   ).toBeVisible()
   await expect(
-    page.getByText('Saved on this device · ready to reopen offline'),
+    page.getByText('Saved on this device · keep this page open when offline'),
   ).toBeVisible()
   expect(requests).toHaveLength(3)
   await page.getByRole('button', { name: /I’m heading out/ }).click()
@@ -220,18 +240,21 @@ test('production app reopens a saved fixture offline without credentials or anot
   ).toBeVisible()
   await context.setOffline(true)
   await expect(page.getByText('Device offline')).toBeVisible()
-  await page.reload()
   await expect(
     page.getByRole('heading', { name: fixture.mission.title }),
   ).toBeVisible()
+  await page.reload()
   await expect(
-    page.getByText('Saved on this device · ready to reopen offline'),
-  ).toBeVisible()
-  await page.getByText('Backend connection', { exact: true }).click()
-  await expect(page.getByLabel('Server access token')).toHaveValue('')
+    page.getByRole('heading', { name: fixture.mission.title }),
+  ).toHaveCount(0)
+  await expect(page.getByText(/Connect to verify your sign-in/)).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Check sign-in' }),
+  ).toBeDisabled()
+  await expect(page.getByLabel('Server access token')).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: /Create my small outing/ }),
-  ).toBeDisabled()
+  ).toHaveCount(0)
   expect(requests).toHaveLength(3)
   expect(
     await page.evaluate(() => ({
@@ -247,11 +270,12 @@ test('production app reopens a saved fixture offline without credentials or anot
     }
     return urls
   })
-  expect(
-    cacheURLs.some((url) => url.includes('/api/') || url.includes(token)),
-  ).toBe(false)
+  expect(cacheURLs.some((url) => url.includes('/api/'))).toBe(false)
   expect(cacheURLs.some((url) => url.endsWith('/index.html'))).toBe(true)
-  await page.getByText('Backend connection', { exact: true }).click()
+  await context.setOffline(false)
+  await expect(
+    page.getByRole('heading', { name: fixture.mission.title }),
+  ).toBeVisible()
   const card = await page
     .getByRole('heading', { name: fixture.mission.title })
     .boundingBox()
@@ -266,9 +290,11 @@ test('production app reopens a saved fixture offline without credentials or anot
   })
 })
 
-test('mobile and desktop preparation fit without horizontal overflow', async ({
+test('mobile and desktop signed-in preparation fit without horizontal overflow', async ({
   page,
+  context,
 }) => {
+  await fixtureApi(context)
   await page.goto('/')
   await expect(
     page.getByRole('heading', { name: 'Your outing starts here.' }),
@@ -296,11 +322,9 @@ test('a disabled hosted provider never permits mission generation', async ({
 }) => {
   const requests = await fixtureApi(context, false)
   await page.goto('/')
-  await page.getByText('Backend connection', { exact: true }).click()
-  await page
-    .getByRole('button', { name: 'Connect to local backend', exact: true })
-    .click()
-  await expect(page.getByText('Connected · generation off')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Sign out', exact: true }),
+  ).toBeEnabled()
   await page
     .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
     .check()
@@ -345,17 +369,15 @@ test('offline observations survive reload and explicit sync safely replays a los
   })
   await page.goto('/')
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
-  await page.getByText('Backend connection', { exact: true }).click()
-  await page
-    .getByRole('button', { name: 'Connect to local backend', exact: true })
-    .click()
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Sign out', exact: true }),
+  ).toBeEnabled()
   await page
     .getByRole('checkbox', { name: /these selections go to hosted Qwen/ })
     .check()
   await page.getByRole('button', { name: /Create my small outing/ }).click()
   await expect(
-    page.getByText('Saved on this device · ready to reopen offline'),
+    page.getByText('Saved on this device · keep this page open when offline'),
   ).toBeVisible()
   await page.getByRole('button', { name: /I’m heading out/ }).click()
   await context.setOffline(true)
@@ -374,17 +396,15 @@ test('offline observations survive reload and explicit sync safely replays a los
     ),
   ).toBeVisible()
   await page.reload()
+  await expect(page.getByText(/Connect to verify your sign-in/)).toBeVisible()
+  await expect(page.getByText(observation, { exact: true })).toHaveCount(0)
+  expect(uploads).toBe(0)
+  await context.setOffline(false)
   await expect(page.getByText(observation, { exact: true })).toBeVisible()
   expect(uploads).toBe(0)
   await page
     .locator('section.journal')
     .screenshot({ path: 'test-results/offline-journal-fixture.png' })
-  await context.setOffline(false)
-  await page.getByText('Backend connection', { exact: true }).click()
-  await page
-    .getByRole('button', { name: 'Connect to local backend', exact: true })
-    .click()
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
   await page.getByText('Cloud sync & privacy', { exact: true }).click()
   await page.getByRole('button', { name: 'Check Atlas status' }).click()
   await expect(

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Request
 
 from .errors import MissionError
 from .followup import FollowUpService
@@ -8,7 +8,9 @@ from .journal_models import FollowUpRequest, FollowUpResponse, FollowUpStatus
 from .models import ProviderStatus
 
 
-def followup_routes(settings, journal_settings, journal, provider, authorize, limiter):
+def followup_routes(
+    settings, journal_settings, journal, provider, authorize, limiter, resolve_owner
+):
     router = APIRouter(prefix="/api/followups", dependencies=[Depends(authorize)])
     service = FollowUpService(provider)
 
@@ -29,14 +31,15 @@ def followup_routes(settings, journal_settings, journal, provider, authorize, li
             )
         return FollowUpStatus(enabled=True, disabled_reason=None)
 
-    def require_owner(expected: str) -> str:
+    def require_owner(expected: str, http_request: Request) -> str:
         current = readiness()
         if not current.enabled:
             raise MissionError(current.disabled_reason or "provider_unavailable")
-        if expected != journal_settings.owner_id:
+        owner = resolve_owner(http_request)
+        if expected != owner:
             raise MissionError("journal_owner_mismatch", 409)
         limiter.admit()
-        return journal_settings.owner_id
+        return owner
 
     @router.get("/status", response_model=FollowUpStatus)
     def status() -> FollowUpStatus:
@@ -44,11 +47,12 @@ def followup_routes(settings, journal_settings, journal, provider, authorize, li
 
     @router.post("", response_model=FollowUpResponse)
     def create(
+        http_request: Request,
         request: FollowUpRequest,
         expected: Annotated[str, Header(alias="X-OneLap-Journal-Owner")],
     ) -> FollowUpResponse:
         with provider.tracer.run("followup", prompt_version="follow-up-v2"):
-            owner = require_owner(expected)
+            owner = require_owner(expected, http_request)
             ids = [request.source_id, *request.context_ids]
             with provider.tracer.span(
                 "retrieval",

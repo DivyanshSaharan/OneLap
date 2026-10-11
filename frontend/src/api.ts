@@ -6,7 +6,41 @@ export class ApiError extends Error {
   }
 }
 
+let cookieSession = false
+let csrfToken: string | null = null
+let sessionOwner: string | null = null
+let sessionRevision = 0
+
+// Only the CSRF token is held in memory. The opaque session cookie is HttpOnly.
+export function setSessionTransport(
+  enabled: boolean,
+  csrf: string | null,
+  owner: string | null,
+) {
+  cookieSession = enabled
+  csrfToken = csrf
+  sessionOwner = owner
+  ++sessionRevision
+}
+
 const explanations: Record<string, string> = {
+  sign_in_required:
+    'Sign in again to use your cloud journal. Saved notes remain on this device.',
+  session_changed:
+    'The signed-in account changed. Reconnect before continuing.',
+  google_sign_in_failed:
+    'Google sign-in could not be verified. Start sign-in again.',
+  auth_challenge_invalid: 'This sign-in attempt expired. Start sign-in again.',
+  auth_challenge_used:
+    'This sign-in attempt was already used. Start a fresh one.',
+  auth_csrf_rejected:
+    'Your session changed. Refresh sign-in before trying again.',
+  auth_origin_rejected:
+    'This website address is not enabled for sign-in on the server.',
+  auth_storage_unavailable:
+    'Sign-in storage is unavailable. No cloud access was granted.',
+  google_widget_unavailable:
+    'Google sign-in could not load. Check your connection or browser settings.',
   private_access_not_configured:
     'The private API is not configured yet. Set an access token on the server before connecting.',
   unauthorized:
@@ -70,6 +104,10 @@ export async function privateRequest(
   owner?: string,
 ): Promise<unknown> {
   if (!navigator.onLine) throw new ApiError('offline')
+  const authRequest = path.startsWith('/api/auth/')
+  const revision = sessionRevision
+  if (!authRequest && cookieSession && owner && owner !== sessionOwner)
+    throw new ApiError('session_changed')
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
@@ -79,13 +117,18 @@ export async function privateRequest(
     const response = await fetch(path, {
       method,
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token && !cookieSession
+          ? { Authorization: `Bearer ${token}` }
+          : {}),
+        ...(cookieSession && csrfToken && method !== 'GET'
+          ? { 'X-OneLap-CSRF': csrfToken }
+          : {}),
         ...(body ? { 'Content-Type': 'application/json' } : {}),
         ...(owner ? { 'X-OneLap-Journal-Owner': owner } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
       cache: 'no-store',
-      credentials: 'omit',
+      credentials: authRequest || cookieSession ? 'same-origin' : 'omit',
       signal: controller.signal,
     })
     let result: unknown
@@ -104,8 +147,16 @@ export async function privateRequest(
         typeof result.error === 'string'
           ? result.error
           : 'invalid_response'
+      if (
+        !authRequest &&
+        cookieSession &&
+        ['sign_in_required', 'auth_csrf_rejected'].includes(code)
+      )
+        window.dispatchEvent(new Event('onelap:session-expired'))
       throw new ApiError(code)
     }
+    if (!authRequest && cookieSession && revision !== sessionRevision)
+      throw new ApiError('session_changed')
     return result
   } catch (error) {
     if (error instanceof ApiError) throw error

@@ -47,7 +47,21 @@ function offlineShell(): Plugin {
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react(), offlineShell()],
-  server: { strictPort: true, proxy: { '/api': 'http://127.0.0.1:8770' } },
-  preview: { strictPort: true, proxy: { '/api': 'http://127.0.0.1:8770' } },
+  server: {
+    strictPort: true,
+    proxy: { '/api': { target: 'http://127.0.0.1:8770', changeOrigin: false } },
+    headers: {
+      'Referrer-Policy': 'no-referrer-when-downgrade',
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
+  preview: {
+    strictPort: true,
+    proxy: { '/api': { target: 'http://127.0.0.1:8770', changeOrigin: false } },
+    headers: {
+      'Referrer-Policy': 'no-referrer-when-downgrade',
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
   build: { outDir: '../dist', emptyOutDir: true },
 })

@@ -1,10 +1,10 @@
 # Next deployment boundary
 
-The authorized non-auth preparation is complete: durable Atlas spending reservations, device/journal-scoped storage, a frozen synthetic corpus, matched baseline/adapter captures, one capped LoRA pilot, verified checkpoint selection and simplified production controls. These are committed separately. The app remains base-model/default-off; no deployment service or authenticated account system was created.
+The non-auth preparation is complete and pushed. The owner subsequently approved Google authentication and per-user journals; that implementation is now under review, with offline auth/isolation tests and no live OAuth/Atlas-session check yet. The app remains base-model/default-off; no deployment service was created.
 
 ## What still needs the owner
 
-1. **Google authentication and per-user cloud authorization**, explicitly excluded from this run. Supply OAuth client configuration privately after that feature is approved. A UUID device slot or shared server token is not a login; all current authorized clients use the same personal cloud identity.
+1. **Review and user-driven Google login verification.** OAuth credentials are in the ignored `.env`; implementation uses Google popup sign-in, verified ID tokens and revocable Atlas sessions. Check login/reload/logout and a second account with sharing/model gates off. Existing personal history is not migrated. See docs/authentication.md.
 2. **Actual Render deployment approval/configuration.** Reuse the Docker/Blueprint package, supply server-side secrets only, keep automatic deploys off and review the HTTPS origin/OAuth redirect settings. Do not publish paid access until authentication/owner isolation passes.
 3. **Durable budget import/activation.** Read the current file ledger again, explicitly import both counters into the stable production Atlas scope, and approve its separate metadata gate and cumulative model limits. The live probe did not migrate it. Never reset old counters to regain allowance.
 4. **Container build and HTTPS smoke.** Docker's Linux engine is currently unavailable. The packaged server/browser works locally, but a Docker build and real Render health/static/API test remain unverified. No account or service was created to work around that boundary.

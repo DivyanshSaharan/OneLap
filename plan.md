@@ -1,5 +1,15 @@
 # OneLap: implementation and handoff plan
 
+## October 11 Google authentication approval
+
+The owner explicitly confirmed Google authentication and per-user Atlas journal isolation, replacing the earlier exclusion below. This increment implements popup sign-in, backend verification, revocable Atlas sessions, account-derived journal ownership and the UI boundary. Offline tests use synthetic identities only; live Google login and Atlas auth-session checks remain user-driven. No new paid calls, journal uploads, migration of the legacy personal journal or Render deployment are authorized. The owner approved committing and pushing this authentication increment after testing local login/logout and requesting the mandatory gate. The preceding pushed commit is `7b035e5`.
+
+See docs/authentication.md. Existing model/sharing/export gates and both spending ledgers remain unchanged. Earlier statements that authentication is excluded are historical and superseded by this confirmation.
+
+The owner subsequently confirmed local login/logout works and requested mandatory sign-in. The workspace is now unmounted until the backend confirms a signed-in owner; cached missions, imports, notes and legacy UI controls cannot bypass the gate. Logout locks immediately even on a failed revocation. Offline invalidation also locks. A verified open tab can work offline, but a fresh offline reload stays locked until online verification.
+
+Latest gate verification: 237 frontend tests, seven Edge browser checks, 30 offline backend authentication cases, Prettier and typecheck/production build pass. The earlier full backend run passed 524 tests. No new hosted calls or cloud-note uploads occurred. Historical static demo/token-only packaged browser workflows below predate the mandatory gate and cannot unlock the current app; use the auth-aware browser suite or user-driven signed-in checks instead. The local backend runs on port 8770 and production preview on 4174; use `http://localhost:4174` for Google origins. A second real account and independent live Atlas-session checks remain pending. Approved commit message: `feat: add Google authentication and per-user journal isolation`; consult Git for its resulting commit and remote status.
+
 ## October 11 approved continuation
 
 The owner authorizes implementation, verification, one-functionality commits and pushes for the remaining increments, except Google backend authentication/per-user cloud journal isolation. This standing approval replaces the earlier per-commit approval boundary for this continuation only. No public Render deployment, Google/Sentry account creation, personal-note upload or public posting is authorized.

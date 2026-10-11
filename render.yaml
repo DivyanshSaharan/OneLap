@@ -13,7 +13,13 @@ services:
     envVars:
       - key: ONELAP_SERVE_FRONTEND
         value: 'true'
-      - key: ONELAP_ACCESS_TOKEN
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ONELAP_AUTH_ORIGINS
+        sync: false
+      - key: MONGODB_URI
         sync: false
       - key: ONELAP_HOSTED_REQUESTS_ENABLED
         value: 'false'

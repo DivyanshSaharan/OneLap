@@ -10,9 +10,13 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from .access import local_request
 from .atlas_budget import inference_ledger
+from .auth import Authentication
+from .auth_config import AuthSettings
+from .auth_repository import AtlasSessions
 from .config import ROOT, Settings
 from .errors import MissionError
 from .followup_routes import followup_routes
@@ -51,14 +55,21 @@ def create_app(
     journal_settings: JournalSettings | None = None,
     journal: AtlasJournal | None = None,
     tracer: Tracer | None = None,
+    auth_settings: AuthSettings | None = None,
+    sessions: AtlasSessions | None = None,
+    google_verifier=None,
 ) -> FastAPI:
     if settings is None:
         load_dotenv(ROOT / ".env", override=False)
         settings = Settings.from_environment()
         journal_settings = journal_settings or JournalSettings.from_environment()
         tracer = tracer or Tracer(TracingSettings.from_environment())
+        auth_settings = auth_settings or AuthSettings.from_environment()
     tracer = tracer or Tracer()
     journal_settings = journal_settings or JournalSettings()
+    auth_settings = auth_settings or AuthSettings()
+    sessions = sessions or AtlasSessions(journal_settings)
+    authentication = Authentication(auth_settings, sessions, RequestLimiter(12), google_verifier)
     if journal is not None and journal.settings != journal_settings:
         raise ValueError("Journal and application settings must match")
     journal = journal or AtlasJournal(journal_settings)
@@ -80,7 +91,10 @@ def create_app(
                 try:
                     provider.ledger.close()
                 finally:
-                    tracer.close()
+                    try:
+                        tracer.close()
+                    finally:
+                        sessions.close()
 
     app = FastAPI(
         title="OneLap",
@@ -92,6 +106,8 @@ def create_app(
     )
 
     def authorize(request: Request, authorization: Annotated[str | None, Header()] = None):
+        if auth_settings.enabled:
+            return authentication.session(request)["owner"]
         if not settings.access_token:
             if not local_request(request):
                 raise MissionError("local_access_only", 403)
@@ -102,9 +118,18 @@ def create_app(
         ):
             raise MissionError("unauthorized", 401)
 
+    def resolve_owner(request: Request):
+        if auth_settings.enabled:
+            return authentication.session(request)["owner"]
+        return journal_settings.owner_id
+
     @app.exception_handler(MissionError)
     async def mission_error(_request: Request, error: MissionError):
-        headers = {"WWW-Authenticate": "Bearer"} if error.status_code == 401 else None
+        headers = (
+            {"WWW-Authenticate": "Bearer"}
+            if error.status_code == 401 and not auth_settings.enabled
+            else None
+        )
         return JSONResponse({"error": error.code}, status_code=error.status_code, headers=headers)
 
     @app.exception_handler(RequestValidationError)
@@ -115,7 +140,13 @@ def create_app(
     async def bounded_body(request: Request, call_next):
         if request.method == "POST":
             try:
-                authorize(request, request.headers.get("authorization"))
+                if request.url.path == "/api/auth/google":
+                    if auth_settings.enabled:
+                        authentication.origin(request, mutation=True)
+                else:
+                    await run_in_threadpool(
+                        authorize, request, request.headers.get("authorization")
+                    )
             except MissionError as error:
                 return await mission_error(request, error)
             length = request.headers.get("content-length")
@@ -143,6 +174,12 @@ def create_app(
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+        response.headers["Referrer-Policy"] = (
+            "no-referrer-when-downgrade"
+            if request.url.hostname == "localhost" and request.url.scheme == "http"
+            else "strict-origin-when-cross-origin"
+        )
         return response
 
     @app.get("/health")
@@ -160,14 +197,21 @@ def create_app(
             return service.generate(request)
 
     app.include_router(
-        journal_routes(journal_settings, journal, authorize, RequestLimiter(30), tracer)
+        journal_routes(
+            journal_settings, journal, authorize, RequestLimiter(30), tracer, resolve_owner
+        )
     )
     app.include_router(
-        followup_routes(settings, journal_settings, journal, provider, authorize, limiter)
+        followup_routes(
+            settings, journal_settings, journal, provider, authorize, limiter, resolve_owner
+        )
     )
+    app.include_router(authentication.router())
     if settings.serve_frontend:
-        if not settings.access_token:
-            raise RuntimeError("OneLap deployments require ONELAP_ACCESS_TOKEN")
+        if not settings.access_token and not auth_settings.enabled:
+            raise RuntimeError(
+                "OneLap deployments require ONELAP_ACCESS_TOKEN or Google authentication"
+            )
         if not settings.frontend_directory.is_dir():
             raise RuntimeError("OneLap frontend build is missing")
         app.mount(

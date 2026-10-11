@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AccessPanel } from './components/AccessPanel'
+import { SignInPanel } from './components/SignInPanel'
+import { useAuth } from './auth/useAuth'
 import { EmptyMission } from './components/EmptyMission'
 import { JournalPanel } from './components/JournalPanel'
 import { MissionBuilder } from './components/MissionBuilder'
@@ -16,6 +18,65 @@ import { useFollowUp } from './journal/useFollowUp'
 export default function App() {
   const online = useOnline()
   const state = useMission()
+  const auth = useAuth(
+    online,
+    state.restoring,
+    state.connectAccount,
+    state.disconnect,
+  )
+  const shell = useOfflineShell()
+  if (!auth.authenticated) {
+    return (
+      <div className="page">
+        <PageHeader online={online} />
+        <main>
+          <section className="hero">
+            <span className="eyebrow">AFTER WORK, BEFORE SCROLLING</span>
+            <h1>
+              A little outside.
+              <br />
+              <em>A little more present.</em>
+            </h1>
+            <p>Sign in to start your small outing. Your journal stays yours.</p>
+          </section>
+          {!online && (
+            <Notice>
+              Connect to verify your sign-in before opening OneLap.
+            </Notice>
+          )}
+          <SignInPanel
+            auth={auth}
+            busy={auth.busy || state.restoring}
+            online={online}
+            connected={false}
+            onConnect={state.connectAccount}
+          />
+        </main>
+      </div>
+    )
+  }
+  return (
+    <Workspace
+      key={auth.session!.owner_id!}
+      state={state}
+      auth={auth}
+      online={online}
+      shell={shell}
+    />
+  )
+}
+
+export function Workspace({
+  state,
+  auth,
+  online,
+  shell,
+}: {
+  state: ReturnType<typeof useMission>
+  auth: ReturnType<typeof useAuth>
+  online: boolean
+  shell: ReturnType<typeof useOfflineShell>
+}) {
   const journal = useJournal(
     state.accessToken,
     online,
@@ -28,7 +89,6 @@ export default function App() {
     Boolean(state.status),
     state.owner,
   )
-  const shell = useOfflineShell()
   const [pocket, setPocket] = useState(false)
   const [returning, setReturning] = useState(0)
   useEffect(() => {
@@ -37,6 +97,7 @@ export default function App() {
   }, [state.owner])
   const busy =
     Boolean(state.busy) ||
+    auth.busy ||
     state.restoring ||
     journal.busy ||
     journal.restoring ||
@@ -109,7 +170,7 @@ export default function App() {
             </Notice>
           )}
         </div>
-        {!pocket && (
+        {!pocket && auth.session?.enabled === false && (
           <AccessPanel
             status={state.status}
             busy={busy}
@@ -117,6 +178,15 @@ export default function App() {
             online={online}
             onConnect={state.connect}
             onDisconnect={state.disconnect}
+          />
+        )}
+        {!pocket && auth.session?.enabled !== false && (
+          <SignInPanel
+            auth={auth}
+            busy={busy}
+            online={online}
+            connected={Boolean(state.status)}
+            onConnect={state.connectAccount}
           />
         )}
         <div className={`mission-layout ${pocket ? 'single' : ''}`}>
@@ -205,7 +275,7 @@ export default function App() {
             <p>Made for a small break, not another feed.</p>
             <p className="small muted">
               {shell.state === 'ready'
-                ? 'Save a mission here before going offline.'
+                ? 'Save a mission before going offline. Reopening needs sign-in verification.'
                 : shell.state === 'development'
                   ? 'This preview needs an internet connection to reopen.'
                   : shell.state === 'unavailable'

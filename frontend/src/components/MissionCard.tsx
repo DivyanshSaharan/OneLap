@@ -68,7 +68,7 @@ export const MissionCard = memo(function MissionCard({
       </p>
       <p className="save-state" role="status">
         {offlineReady
-          ? 'Saved on this device · ready to reopen offline'
+          ? 'Saved on this device · keep this page open when offline'
           : saved
             ? 'Saved on this device · offline shell not ready yet'
             : 'Not saved yet · keep this page open'}

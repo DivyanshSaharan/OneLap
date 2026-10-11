@@ -21,6 +21,7 @@ export function useMission() {
   >(null)
   const lock = useRef(false)
   const alive = useRef(true)
+  const accountRevision = useRef(0)
   const [token, setToken] = useState('')
   const [owner, setOwner] = useState<LocalOwner>(null)
   const currentOwner = useRef<LocalOwner>(null)
@@ -69,11 +70,13 @@ export function useMission() {
     }
   }, [])
 
-  async function switchOwner(nextOwner: LocalOwner) {
-    if (currentOwner.current === nextOwner) return
+  async function switchOwner(nextOwner: LocalOwner, reload = false) {
+    if (currentOwner.current === nextOwner && !reload) return
+    const revision = accountRevision.current
     const record = await loadMission(nextOwner)
+    if (revision !== accountRevision.current) return
     await saveLocalOwner(nextOwner)
-    if (!alive.current) return
+    if (!alive.current || revision !== accountRevision.current) return
     currentOwner.current = nextOwner
     setOwner(nextOwner)
     setMission(record?.response ?? null)
@@ -197,6 +200,24 @@ export function useMission() {
     storageError,
     accessToken: token,
     owner,
+    connectAccount: async (accountOwner: string) =>
+      act('connecting', async () => {
+        const revision = ++accountRevision.current
+        setStatus(null)
+        setToken('')
+        // Switch local slots before any account-specific network result is shown.
+        setMission(null)
+        setFollowUpOrigin(null)
+        setSaved(false)
+        await switchOwner(accountOwner, true)
+        if (revision !== accountRevision.current) return
+        const result = await getStatus('')
+        const journal = await getJournalStatus('')
+        if (journal.enabled && journal.owner_id !== accountOwner)
+          throw new Error('invalid_response')
+        if (alive.current && revision === accountRevision.current)
+          setStatus(result)
+      }),
     connect: async (candidate: string) => {
       await act('connecting', async () => {
         setStatus(null)
@@ -210,8 +231,9 @@ export function useMission() {
         }
       })
     },
-    disconnect: () => {
-      void act('connecting', async () => {
+    disconnect: async () => {
+      const revision = ++accountRevision.current
+      try {
         setToken('')
         setStatus(null)
         setError(null)
@@ -223,19 +245,25 @@ export function useMission() {
         setOwner(null)
         await saveLocalOwner(null)
         const record = await loadMission()
-        if (alive.current) {
+        if (alive.current && revision === accountRevision.current) {
           setMission(record?.response ?? null)
           setMissionSource(record?.source ?? 'generated')
           setFollowUpOrigin(record?.followUpOrigin ?? null)
           setSaved(Boolean(record))
         }
-      })
+      } catch {
+        if (alive.current)
+          setStorageError(
+            'Signed-out notes could not be reopened. Account notes are hidden; reload to check device storage.',
+          )
+      }
     },
     generate: async (input: MissionRequest) => {
       await act('generating', async () => {
         if (!status?.enabled) return
+        const revision = accountRevision.current
         const result = await generateMission(token, input)
-        if (!alive.current) return
+        if (!alive.current || revision !== accountRevision.current) return
         setMission(result)
         setMissionSource('generated')
         setFollowUpOrigin(null)

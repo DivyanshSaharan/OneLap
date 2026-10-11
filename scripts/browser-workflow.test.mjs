@@ -18,6 +18,13 @@ const headers = {
   authorization: `Bearer ${input.token}`,
   'x-onelap-journal-owner': input.owner,
 }
+
+test('permits only the public identity-mode check, not login mutations or token sharing', () => {
+  const boundary = new RequestBoundary(input)
+  admit(boundary, '/api/auth/session', 'GET', null, {})
+  assert.throws(() => admit(boundary, '/api/auth/session', 'GET'))
+  assert.throws(() => admit(boundary, '/api/auth/google', 'POST', {}, {}))
+})
 const entry = {
   id: '22222222-2222-4222-8222-222222222222',
   observation: input.observation,

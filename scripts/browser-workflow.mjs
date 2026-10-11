@@ -30,6 +30,11 @@ export class RequestBoundary {
       )
       return
     }
+    if (url.pathname === '/api/auth/session') {
+      assert.equal(method, 'GET')
+      assert.equal(headers.authorization, undefined)
+      return
+    }
     assert.equal(headers.authorization, `Bearer ${this.input.token}`)
     if (method === 'GET') {
       assert.ok(

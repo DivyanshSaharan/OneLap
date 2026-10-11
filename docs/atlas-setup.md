@@ -1,5 +1,7 @@
 # Atlas setup — keep sync disabled for now
 
+October 11 update: Google authentication is now implemented and needs Atlas for minimal session metadata, independently of note-sync gates. Follow [authentication setup](authentication.md) when Google credentials are present. Legacy loopback/token instructions below apply only without Google configuration. Fictional journal checks have since passed; live Google-session checks still await the user.
+
 This guide is for the owner to follow in their own account. An authenticated, read-only Atlas ping passed on October 6, 2026. **Journal writes, reads and deletion have not been tested live.** Do not paste credentials into chat. Setup is not authorization to upload notes.
 
 ## 1. Create a free cluster
@@ -37,7 +39,7 @@ ONELAP_APPROVED_BUDGET_USD=0
 
 Environment variables override `.env`; settings are read at server startup. Leave both journal gates **false** throughout setup. In the app, open **Backend connection → Connect to local backend**; no token entry is needed. Status checks do not connect to MongoDB, and installing dependencies does not upload notes.
 
-For a future non-local deployment, configure a private `ONELAP_ACCESS_TOKEN` and use the optional protected-server connection form. Setting a token restores mandatory bearer authentication with no local bypass. `ONELAP_OWNER_ID` remains an optional advanced override for an existing separate journal; changing it does not migrate records.
+For public deployment, use Google authentication and the actual HTTPS origin, not a shared access token. The optional bearer form and `ONELAP_OWNER_ID` override are legacy private-development options only; neither overrides ownership in Google mode or migrates records.
 
 Atlas's IP allowlist is separate from application access. Allowing every IP does not replace database credentials or protect the app API. Prefer narrowing it to the required client addresses after testing. OneLap does not edit your Atlas network settings. [Official IP access-list guide](https://www.mongodb.com/docs/atlas/security/ip-access-list/).
 
