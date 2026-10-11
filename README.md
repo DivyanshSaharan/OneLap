@@ -12,9 +12,9 @@ After returning, save a short observation and feedback locally, including while 
 
 Production builds cache the public app shell with a service worker. Google sign-in provides backend-verified identity and per-user Atlas access; IndexedDB separates missions and notes by that account's journal UUID. All app controls require verified sign-in. Local storage is **not encrypted**. The owner reports local Google login/logout works; automated account-switching checks use synthetic identities. A signed-in open tab works offline, but fresh offline reloads stay locked until online session verification. Physical-phone and outdoor evidence remain pending.
 
-Render/Docker packaging is included, but no Render service has been created or deployed. Atlas-backed spending counters passed an isolated content-free live probe; the production counter is not migrated/activated. The owner reports local Google login/logout works; deployed HTTPS authentication still needs verification, and paid public inference remains off. Optional metadata-only Sentry instrumentation is locally verified, with export disabled and no live dashboard test.
+OneLap is deployed as a single-origin Docker web service at [onelap-4s17.onrender.com](https://onelap-4s17.onrender.com). Process health returned HTTP 200 on release `7cad60b`; this does not verify signed-in generation or Tinker availability. On October 11, the approved production Atlas spending counter was initialized with the existing **$0.004665 estimated reservations / six requests** and verified after reopening, without modifying the source ledgers or making a model request. The owner approved mission generation under the cumulative **$0.05 / 20-request** limits, and the exact Render overrides were saved and read back. Journal upload, reflection sharing and Sentry export remain off. Paid remote sampling, deployed HTTPS authentication and the full user-driven outing still need verification.
 
-**One real Tinker LoRA pilot is complete.** With 100 synthetic supervised examples and one three-epoch Qwen3.5-4B candidate, held-out application acceptance improved from **20/30 (66.7%) to 29/30 (96.7%)**; development acceptance improved from 16/20 to 20/20. This is structured-output/application compliance, **not semantic accuracy or outdoor usefulness**. Human semantic review remains pending. The owner approved selecting this trained adapter locally and in the Render configuration; hosted gates remain off and current remote checkpoint availability is unverified. [Full results, failure and cost](docs/pilot-results.md) · [Public hash-bound metrics](reports/onelap-pilot-v1.json) · [Verified checkpoint selection](docs/checkpoint.md).
+**One real Tinker LoRA pilot is complete.** With 100 synthetic supervised examples and one three-epoch Qwen3.5-4B candidate, held-out application acceptance improved from **20/30 (66.7%) to 29/30 (96.7%)**; development acceptance improved from 16/20 to 20/20. This is structured-output/application compliance, **not semantic accuracy or outdoor usefulness**. Human semantic review remains pending. The owner approved selecting this trained adapter locally and in the Render configuration; current remote checkpoint availability is unverified. [Full results, failure and cost](docs/pilot-results.md) · [Public hash-bound metrics](reports/onelap-pilot-v1.json) · [Verified checkpoint selection](docs/checkpoint.md).
 
 Automated model tests use explicit offline doubles; the standard browser suite uses labelled fictional responses, and the packaged-server fixture harness uses local service doubles. The application has no fake-model fallback. Six separately approved hosted samples were made on October 10 using synthetic data: three mission attempts and three follow-ups, with two accepted replies of each type. These are smoke samples, not an accuracy benchmark. See [the initial API evidence](docs/live-smoke-2026-10-10.md) and [the fresh live-browser evidence](docs/live-browser-2026-10-10.md), including semantic defects. A captured follow-up can be reviewed and imported locally without an API call, with an unverified-provenance label that persists offline. Nothing is imported automatically.
 
@@ -43,7 +43,7 @@ Start the local API:
 
 The local environment is isolated from GuardMate. Nothing from GuardMate's private state or model adapters is reused.
 
-## Render package (not activated)
+## Render deployment and activation
 
 The root `Dockerfile` builds the React PWA and FastAPI API into one same-origin service. `render.yaml` selects Render's free web-service plan, disables preview environments and automatic deploys, and keeps model spending, note synchronization and reflection sharing off. It requests private Google client configuration, the Atlas URI and the actual HTTPS origin; no credential values are committed. The bundled server requires Google configuration or an explicitly protected legacy token. The public deployment path uses Google authentication, not a distributed shared token.
 
@@ -53,8 +53,9 @@ checks. `compose.yaml` provides a loopback-only local setup at `localhost:4178`
 with separate ignored credentials and all sharing/spending gates forcibly off.
 The Render Blueprint includes the Tinker key and explicit adapter receipt settings;
 the private receipt belongs in a runtime secret file, never the image. See
-[Docker/Render setup and verification](docs/docker-deployment.md). No Render
-deployment or remote model/Atlas test is implied by container verification.
+[Docker/Render setup and verification](docs/docker-deployment.md). Container
+verification is separate from the existing Render deployment and does not prove
+remote model availability.
 
 The owner approved selecting the trained Qwen adapter for local use and Render.
 The Blueprint now pins the approved receipt hash and secret-file path; upload
@@ -67,7 +68,7 @@ Google sessions derive a separate journal UUID from each verified account. Atlas
 
 Model and note-sync gates remain off in the template. Render free services have an ephemeral filesystem, so production inference requires the new Atlas spending counter and an explicit immutable import of existing reservations; it refuses the file-backed mode for hosted production inference. [Migration setup](docs/budget.md) and [isolated Atlas evidence](docs/atlas-budget-verification.md) are provided. Real Google/Atlas-session verification must pass before public paid use. Free services cannot attach a persistent disk and may take about a minute to wake after 15 minutes idle. See [Render's free-service limits](https://render.com/docs/free), [persistent-disk behavior](https://render.com/docs/disks), and [Blueprint secret configuration](https://render.com/docs/blueprint-spec).
 
-No Render service, secret, or deployment has been created. Docker image build and isolated container checks passed locally. This package alone is not evidence for the Best Use of Render category; that requires an actual deployment and a tested demo.
+The existing Render service passed health on release `7cad60b`, including non-root group-1000 access to Render secret files. Its uploaded receipt was independently verified against the approved local receipt with only CRLF-to-LF normalization; Render pins the verified uploaded-byte hash rather than disabling validation. The approved production counter import is complete and the Render overrides are saved for mission generation. A production-Atlas status preflight reports the trained adapter enabled under the approved limits without constructing a Tinker sampling client. Paid remote sampling remains unverified. The Blueprint intentionally retains disabled defaults for new deployments; the approved service overrides do not authorize journal upload, reflection sharing, tracing, retraining or an automated paid smoke test.
 
 ### Frontend
 
@@ -197,13 +198,13 @@ The evaluation kit validates a synthetic family-split corpus, exports exact appl
 .\.venv\Scripts\python.exe scripts\evaluate.py prepare --split dev --output .data\evaluation\dev-manifest.json
 ```
 
-Both commands are offline: no `.env` reads, hosted SDK clients, data upload or credit use. Generated artifacts remain ignored and existing files are not overwritten. The 18 starter cases are assistant-authored and **unreviewed**, six each in train/dev/held-out families. They are not gold training completions, actual outings or accuracy evidence. A human-reviewed, frozen and expanded dataset plus separately approved genuine captures are needed before comparison. The resumed base-model API loop passed, but training still requires reviewed data and a separate spending allowance. See [commands and rubric](docs/evaluation.md) and [increment verification](docs/increment-8.md).
+Both commands are offline: no `.env` reads, hosted SDK clients, data upload or credit use. Generated artifacts remain ignored and existing files are not overwritten. The historical 18 starter cases are assistant-authored and **unreviewed**, six each in train/dev/held-out families. The separately approved pilot used a frozen, agent-reviewed synthetic corpus with 100 training examples, 20 development cases and 30 held-out cases; agent review is not human semantic review or real outing evidence. See [commands and rubric](docs/evaluation.md), [increment verification](docs/increment-8.md) and [completed pilot results](docs/pilot-results.md).
 
 ### Runtime configuration
 
-Copy `.env.example` to the ignored `.env` file and edit it locally, without overwriting an existing file. Local use requires neither `ONELAP_OWNER_ID` nor `ONELAP_ACCESS_TOKEN`. For a future non-local deployment, use a random access token of at least 32 ASCII characters with no whitespace, never a fixture token. Never put API credentials or tokens in browser build-time environment variables, screenshots, commits or messages.
+Copy `.env.example` to the ignored `.env` file and edit it locally, without overwriting an existing file. The deployed app uses Google-verified sessions, not a shared access token. Legacy loopback development without Google configuration requires neither `ONELAP_OWNER_ID` nor `ONELAP_ACCESS_TOKEN`; optional bearer-token protection is a separate development boundary. Never put API credentials or tokens in browser build-time environment variables, screenshots, commits or messages.
 
-For now, keep these defaults:
+Keep these safe defaults in templates and local development. The explicitly approved Render service activation is separate:
 
 ```dotenv
 ONELAP_HOSTED_REQUESTS_ENABLED=false
@@ -216,7 +217,7 @@ ONELAP_TRACING_ENABLED=false
 ONELAP_TRACE_SHARING_APPROVED=false
 ```
 
-Only after agreeing the hosted-data boundary and spending cap should the owner install `backend/requirements-ai.txt`, set `TINKER_API_KEY` privately, and explicitly enable all approval settings. Installing the AI dependencies may download software, but the service only creates the hosted sampling client during an enabled generation request. Health/status checks do not initialize it.
+Only after agreeing the hosted-data boundary and spending cap should the owner install `backend/requirements-ai.txt`, set `TINKER_API_KEY` privately, and enable the settings for the approved operation. Mission generation does not require journal or reflection sharing. Installing the AI dependencies may download software, but the service only creates the hosted sampling client during an enabled generation request. Health/status checks do not initialize it. [The production import and cumulative limits](docs/budget.md) preserve earlier reservations; unused headroom is not permission for an automated paid test.
 
 `ONELAP_MAX_MODEL_REQUESTS` adds a persistent request-count limit (default 20). Configuration is read when the service starts; restart after changes. Environment variables override `.env` values.
 
@@ -224,15 +225,15 @@ Only after agreeing the hosted-data boundary and spending cap should the owner i
 
 | Endpoint | Access | Purpose |
 | --- | --- | --- |
-| `GET /health` | Public, loopback development | Basic process health only |
-| `GET /api/model/status` | Local-only or configured bearer token | Actual model, approval state and reservation counters |
-| `POST /api/missions` | Local-only or configured bearer token | Generate one validated mission |
-| `GET /api/journal/status` | Local-only or configured bearer token | Journal configuration only; no database connection |
-| `POST /api/journal/entries` | API access, server journal ID | Idempotently store one outing snapshot, observation and feedback |
-| `GET /api/journal/entries` | API access, owner header | Load an owner-scoped page; optional `after` UUID |
-| `DELETE /api/journal/entries/{id}` | API access, owner header | Replace a note with a content-free deletion tombstone |
-| `GET /api/followups/status` | Local-only or configured bearer token | Check server gates; does not query Atlas or Tinker |
-| `POST /api/followups` | API access, owner header | Re-read selected Atlas records and request one reflection/mission |
+| `GET /health` | Public | Basic process health only |
+| `GET /api/model/status` | Verified session | Actual model, approval state and reservation counters |
+| `POST /api/missions` | Verified session, mission gates | Generate one validated mission |
+| `GET /api/journal/status` | Verified session | Journal configuration only; no database connection |
+| `POST /api/journal/entries` | Verified session, journal gates | Idempotently store one owner-scoped outing snapshot, observation and feedback |
+| `GET /api/journal/entries` | Verified session, journal gates | Load an owner-scoped page; optional `after` UUID |
+| `DELETE /api/journal/entries/{id}` | Verified session, journal gates | Replace an owner-scoped note with a content-free deletion tombstone |
+| `GET /api/followups/status` | Verified session | Check server gates; does not query journal contents or Tinker |
+| `POST /api/followups` | Verified session, reflection/journal/mission gates | Re-read selected owner-scoped Atlas records and request one reflection/mission |
 
 Optional protected mode: `Authorization: Bearer <private-access-token>`. Token-free mode only allows loopback development with local host/origin ports 4174, 5174 and 8770. Forwarded/proxied and cross-site requests are rejected. This is a convenience boundary, not authentication for other users on the same laptop.
 
@@ -279,7 +280,7 @@ Validation/provider errors do not return private inputs or SDK exception text. N
 
 ## Verification
 
-Latest October 11 checks: **524 backend tests, 229 frontend tests, seven Edge production-browser checks**, the seven-stage no-spend packaged-server workflow, 24 handoff and ten browser-boundary checks, Ruff lint/format, Prettier, TypeScript, production build and dependency checks. Authentication tests include locally signed RSA tokens and synthetic two-account isolation, not live Google/Atlas sessions. Sign-in and restored-account screenshots were inspected. Training completed 30 updates and all 100 admitted evaluation samples; frozen public metrics remain unchanged. No physical-phone outdoor result, container build, public deployment, live OAuth verification or Sentry dashboard evidence is implied.
+Latest October 11 checks: **544 backend tests and 252 frontend tests**, Ruff lint/format, TypeScript/production build and Prettier pass. The Docker correction also passed a capability-dropped, network-disabled Linux container smoke, including positive and negative secret-file permission controls. Earlier verification includes seven Edge production-browser checks, the no-spend packaged-server workflow and synthetic two-account authentication tests. Training completed 30 updates and all 100 admitted evaluation samples; frozen public metrics remain unchanged. The existing Render process health and production counter reopen were checked separately, without sampling. No physical-phone outdoor result, independent live OAuth verification, remote sampler availability or Sentry dashboard evidence is implied.
 
 Tests cover structured responses, API/consent boundaries, persistent admission, journal scoping/idempotency/deletion, offline storage, source provenance, hash-bound receipts, frozen training splits, capture accounting and public evidence privacy. Fixture/browser plumbing checks are deliberately separate from real model-performance evidence.
 

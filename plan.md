@@ -1,5 +1,37 @@
 # OneLap: implementation and handoff plan
 
+## October 11 approved mission-only production activation
+
+The owner approved enabling mission generation, editing the necessary settings in
+the existing logged-in Render service, and committing/pushing the clearer
+spending-setup error messages. The cumulative inference cap remains **$0.05 / 20
+requests**, including the existing **$0.004665 / six requests**. This approval does
+not authorize an automated paid model test, journal upload, observation/reflection
+sharing, tracing, retraining or public posting.
+
+The existing [Render service](https://onelap-4s17.onrender.com) returned HTTP 200
+health on release `7cad60b`, including the Docker group-1000 secret-file fix.
+Health is not model readiness. The Render destination was privately verified
+against the configured Atlas URI and database before initialization. The content-free
+production counter in `onelap.inference_spending`, scope `onelap:inference:v1`, was
+then created with exactly 4,665 microdollars and six requests. A new adapter read
+back the same snapshot; both source-ledger hashes remain unchanged, and no model
+request or new reservation was made. Keep this immutable import across restarts.
+
+Verification passes: 544 offline backend tests, Ruff lint/format, 252 frontend
+tests, seven offline Edge production-browser checks, typecheck/production build
+and formatting. The spending-setup failure UI
+does not retry a paid request, replace a saved mission or expose private server
+details. The exact mission-only Render overrides were saved and read back, with
+the verified uploaded LF receipt hash preserved. A status preflight against the
+production Atlas counter reports the trained adapter enabled under the approved
+limits without constructing a Tinker sampling client. Templates and local gates
+stay disabled. Paid remote sampling, deployed Google login/status verification,
+human semantic review and real phone/outdoor/demo evidence remain pending.
+
+This is the current activation state. Earlier approval boundaries and deployment
+status below are historical; they do not override this explicitly limited approval.
+
 ## October 11 Render secret-file permissions fix
 
 The owner approved fixing, testing, committing and pushing this single Docker
@@ -76,7 +108,7 @@ The new synthetic training/evaluation pilot has a combined USD 0.75 token-reserv
 
 Approved feature sequence: supervised synthetic corpus; budgeted baseline/adapter captures; capped Qwen LoRA training; explicit verified checkpoint selection; safe device/journal-scoped frontend preparation (not functioning Google sign-in); durable Atlas spending counters; production UI cleanup. Backend Google authentication remains excluded, so do not claim authenticated multi-user isolation or expose paid inference publicly.
 
-### Current handoff — October 11
+### Historical handoff — October 11 before authentication/deployment approval
 
 All seven authorized non-auth feature areas are implemented and pushed as separate functionality commits: durable counters (`5ea47b2`), journal-scoped device storage (`57eac2c`), frozen agent-reviewed corpus (`f622a2b`), verified checkpoint selection (`7aa393f`), bounded captures (`875214a`), capped training (`50ab840`) and production UI cleanup (`3df5150`). Isolated live Atlas-counter evidence is in `42c61e6`. The latest result-documentation commit is recorded in Git; no attribution trailer is used.
 

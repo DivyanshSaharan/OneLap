@@ -3,7 +3,7 @@ import { ApiError, explain, generateMission, getStatus } from './api'
 import { input, mission, status } from './test/fixtures'
 
 function reply(value: unknown, ok = true) {
-  return { ok, json: async () => value } as Response
+  return { ok, status: ok ? 200 : 503, json: async () => value } as Response
 }
 afterEach(() => vi.restoreAllMocks())
 
@@ -75,6 +75,85 @@ describe('private requests', () => {
       'switched off',
     )
   })
+  it.each([
+    [
+      'atlas_budget_not_approved',
+      'OneLap’s shared spending setup has not been approved yet. New missions are paused.',
+    ],
+    [
+      'budget_import_required',
+      'Earlier model spending needs to be added to OneLap’s records before new missions can be created.',
+    ],
+    [
+      'budget_import_below_known_usage',
+      'OneLap’s spending setup is missing some earlier usage. New missions are paused until it is corrected.',
+    ],
+    [
+      'budget_import_below_local_ledger',
+      'The spending setup is below this server’s recorded usage. New missions are paused until it is corrected.',
+    ],
+    [
+      'budget_import_mismatch',
+      'OneLap’s spending settings do not match its saved records. New missions are paused until they are corrected.',
+    ],
+    [
+      'budget_ledger_scope_mismatch',
+      'OneLap’s spending records belong to a different setup. New missions are paused until the server is checked.',
+    ],
+    [
+      'budget_ledger_not_configured',
+      'OneLap’s spending records are not connected yet. New missions are paused until the server setup is completed.',
+    ],
+    [
+      'budget_reservation_conflict',
+      'OneLap found conflicting spending records. New missions are paused until the server is checked.',
+    ],
+  ])(
+    'explains spending setup error %s from a 503 status check without retrying',
+    async (code, explanation) => {
+      const fetch = vi
+        .fn()
+        .mockResolvedValue(
+          reply({ error: code, detail: 'PRIVATE_SPENDING_DETAILS' }, false),
+        )
+      vi.stubGlobal('fetch', fetch)
+      const error: unknown = await getStatus('private-token').catch(
+        (failure: unknown) => failure,
+      )
+      expect(error).toBeInstanceOf(ApiError)
+      expect(error).toMatchObject({ code })
+      expect(explain(error)).toBe(explanation)
+      expect(explain(error)).not.toContain('PRIVATE_SPENDING_DETAILS')
+      expect(explain(error)).not.toContain(code)
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(
+        '/api/model/status',
+        expect.objectContaining({ method: 'GET' }),
+      )
+    },
+  )
+  it.each(['PRIVATE_ERROR_DETAILS', 'constructor', '__proto__', 'toString'])(
+    'does not echo an unknown status error %s or its private details',
+    async (code) => {
+      const fetch = vi
+        .fn()
+        .mockResolvedValue(
+          reply({ error: code, detail: 'PRIVATE_SPENDING_DETAILS' }, false),
+        )
+      vi.stubGlobal('fetch', fetch)
+      const error: unknown = await getStatus('private-token').catch(
+        (failure: unknown) => failure,
+      )
+      expect(explain(error)).toBe(
+        'The API could not complete this action. No substitute mission was created.',
+      )
+      expect(explain(error)).not.toContain(code)
+      expect(explain(error)).not.toContain('PRIVATE_SPENDING_DETAILS')
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(
+        '/api/model/status',
+        expect.objectContaining({ method: 'GET' }),
+      )
+    },
+  )
   it('rejects a model response that changed preferences', async () => {
     vi.stubGlobal(
       'fetch',

@@ -52,6 +52,22 @@ const explanations: Record<string, string> = {
   data_sharing_not_approved:
     'Hosted data sharing has not been approved on the server.',
   budget_not_approved: 'A model spending limit has not been approved yet.',
+  atlas_budget_not_approved:
+    'OneLap’s shared spending setup has not been approved yet. New missions are paused.',
+  budget_import_required:
+    'Earlier model spending needs to be added to OneLap’s records before new missions can be created.',
+  budget_import_below_known_usage:
+    'OneLap’s spending setup is missing some earlier usage. New missions are paused until it is corrected.',
+  budget_import_below_local_ledger:
+    'The spending setup is below this server’s recorded usage. New missions are paused until it is corrected.',
+  budget_import_mismatch:
+    'OneLap’s spending settings do not match its saved records. New missions are paused until they are corrected.',
+  budget_ledger_scope_mismatch:
+    'OneLap’s spending records belong to a different setup. New missions are paused until the server is checked.',
+  budget_ledger_not_configured:
+    'OneLap’s spending records are not connected yet. New missions are paused until the server setup is completed.',
+  budget_reservation_conflict:
+    'OneLap found conflicting spending records. New missions are paused until the server is checked.',
   provider_not_configured:
     'The Tinker key has not been configured on the server.',
   provider_dependencies_missing:
@@ -90,10 +106,9 @@ const explanations: Record<string, string> = {
 
 export function explain(error: unknown): string {
   const code = error instanceof ApiError ? error.code : 'invalid_response'
-  return (
-    explanations[code] ??
-    'The API could not complete this action. No substitute mission was created.'
-  )
+  return Object.hasOwn(explanations, code)
+    ? explanations[code]
+    : 'The API could not complete this action. No substitute mission was created.'
 }
 
 export async function privateRequest(

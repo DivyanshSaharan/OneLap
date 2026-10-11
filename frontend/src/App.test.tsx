@@ -376,3 +376,30 @@ it('keeps hosted generation off when the server reports it disabled', async () =
   ).toBeDisabled()
   expect(mocks.generate).not.toHaveBeenCalled()
 })
+
+it('keeps a saved mission available and generation off when spending setup blocks connection', async () => {
+  mocks.load.mockResolvedValue({
+    version: 1,
+    response: mission,
+    savedAt: new Date().toISOString(),
+  })
+  mocks.getStatus.mockRejectedValue(new ApiError('budget_import_required'))
+  render(<App />)
+  await screen.findByRole('heading', { name: mission.mission.title })
+  fireEvent.click(screen.getByText('Backend connection'))
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Connect to local backend' }),
+  )
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Earlier model spending needs to be added to OneLap’s records before new missions can be created.',
+  )
+  expect(
+    screen.getByRole('heading', { name: mission.mission.title }),
+  ).toBeInTheDocument()
+  expect(
+    screen.getByRole('button', { name: /Create my small outing/ }),
+  ).toBeDisabled()
+  expect(mocks.getStatus).toHaveBeenCalledExactlyOnceWith('')
+  expect(mocks.generate).not.toHaveBeenCalled()
+  expect(mocks.save).not.toHaveBeenCalled()
+})
