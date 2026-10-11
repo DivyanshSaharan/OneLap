@@ -1,5 +1,13 @@
 # OneLap: implementation and handoff plan
 
+## October 11 approved continuation
+
+The owner authorizes implementation, verification, one-functionality commits and pushes for the remaining increments, except Google backend authentication/per-user cloud journal isolation. This standing approval replaces the earlier per-commit approval boundary for this continuation only. No public Render deployment, Google/Sentry account creation, personal-note upload or public posting is authorized.
+
+The new synthetic training/evaluation pilot has a combined USD 0.75 token-reservation cap, separate from and without resetting the existing six-request inference ledger. One training candidate, three epochs at most, matched baseline/adapter development and held-out captures, and no application auto-activation. Dataset preparation and independent agent review are allowed; never label them human review or genuine outings. Human semantic review and outdoor evidence remain pending. Checkpoint storage is separately billed; save only the final sampler adapter with a seven-day expiry and report that limitation. The owner reports USD 0.23 actual combined GuardMate/OneLap usage so far; local reservations are not invoices.
+
+Approved feature sequence: supervised synthetic corpus; budgeted baseline/adapter captures; capped Qwen LoRA training; explicit verified checkpoint selection; safe device/journal-scoped frontend preparation (not functioning Google sign-in); durable Atlas spending counters; production UI cleanup. Backend Google authentication remains excluded, so do not claim authenticated multi-user isolation or expose paid inference publicly.
+
 Updated: October 10, 2026. Status: increments 1–12 are implemented; the user approved committing/pushing increment 12. Check Git history and remote status for its resulting commit. The preceding pushed commit `f511d52` adds the production-browser workflow and Windows packaged-file MIME fix. A separately approved fresh two-request production-browser run on that commit passed against real Tinker/Atlas, including offline saves/reloads, exact sync/readback, follow-up acceptance and verified deletion/replay rejection. It used only fixed fictional data. Increment 12 persists bounded follow-up source references locally and passes unit/fixture checks; the live run preceded that change. The user plans a phone/outdoor check tomorrow; no result is claimed. Model replies still have semantic weaknesses; smoke success is not accuracy or field evidence. Estimated reservations total $0.004665 across six samples, not measured billing; all request allowances are used. Saved AI/Atlas/tracing gates remain off. No hosted evaluation or training, Render service or Sentry project has been created.
 
 ## Product
