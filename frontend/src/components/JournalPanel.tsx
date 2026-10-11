@@ -104,8 +104,7 @@ export function JournalPanel({
       <span className="eyebrow">03 / WHEN YOU’RE BACK</span>
       <h2 id="journal-title">Bring back one thought.</h2>
       <p className="muted">
-        No GPS check or proof of completion. Your observation is yours, not the
-        model’s interpretation.
+        A sound, a shadow, a detail you almost missed. What stayed with you?
       </p>
       {journal.error && <Notice error>{journal.error}</Notice>}
       {journal.storageError && (
@@ -202,10 +201,8 @@ export function JournalPanel({
               />
             </label>
             <p className="small muted">
-              Up to 1,000 characters. Optional if you stopped or skipped. Saved
-              locally first. AI follow-up is separate and only happens after you
-              review selected notes and approve one hosted request. Unsaved
-              drafts do not survive a reload—use Save before closing.
+              Save before closing so you don’t lose your thought. You choose
+              whether to share it later.
             </p>
             <button
               className="primary-button"
@@ -251,8 +248,7 @@ export function JournalPanel({
         )}
         {!connected && (
           <p className="small muted">
-            Connect through Backend connection above to check journal settings.
-            Qwen can remain switched off.
+            Reconnect your account from the header to use cloud sync.
           </p>
         )}
         {otherOwners && (

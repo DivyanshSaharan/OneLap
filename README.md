@@ -98,11 +98,11 @@ Alternatively install Playwright's Chromium (`npx.cmd playwright install chromiu
 
 More implementation and test details: [docs/increment-2.md](docs/increment-2.md).
 
-### Use a captured mission without another model request
+### Historical captured missions
 
-Expand **Use a captured mission · no model request**, choose a single mission-response JSON, review all its text and metadata, check the local-save review box and save. The file stays on this device; importing does not enable generation, journal sync or tracing. A full smoke report is not accepted. The maximum file size is 16 KiB; duplicate keys, invalid schema/text, unsupported model targets and prohibited keywords are rejected. Validation is not a safety, authenticity or grounding guarantee.
+The deployment UI no longer exposes JSON mission importing. Users create outings through the normal signed-in model flow; there is no hidden import toggle or demo fallback. The import component/parser remain only as isolated developer utilities and tests.
 
-Saving replaces the current mission only after local storage confirms success. Existing observation notes are kept. Imported files remain labelled **model provenance not verified**, including after offline reload and in pocket mode. Old saved missions remain readable. A later explicit cloud sync/follow-up has its own sharing boundary; imported snapshots are client-submitted, not independently verified model results.
+Existing saved missions and observation notes are not deleted. Older imported missions remain readable with their **model provenance not verified** label; they are not relabelled as genuine model generations. Cloud sync/follow-up retains its own explicit sharing boundary.
 
 [This unmodified captured example](examples/captured-followup-2026-10-10.json) came from the synthetic live retest, not an actual outing. Read [its provenance and quality caveats](examples/README.md) before deciding whether to use it. The app does not load it as a fallback. [Phone/outdoor instructions](docs/field-test.md) are provided; real field results remain pending.
 

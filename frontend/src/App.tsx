@@ -6,9 +6,9 @@ import { EmptyMission } from './components/EmptyMission'
 import { JournalPanel } from './components/JournalPanel'
 import { MissionBuilder } from './components/MissionBuilder'
 import { MissionCard } from './components/MissionCard'
-import { MissionImport } from './components/MissionImport'
 import { Notice } from './components/Notice'
 import { PageHeader } from './components/PageHeader'
+import { PrivacyNote } from './components/PrivacyNote'
 import { useMission } from './hooks/useMission'
 import { useOfflineShell } from './hooks/useOfflineShell'
 import { useOnline } from './hooks/useOnline'
@@ -27,30 +27,60 @@ export default function App() {
   const shell = useOfflineShell()
   if (!auth.authenticated) {
     return (
-      <div className="page">
-        <PageHeader online={online} />
+      <div className="page welcome-page">
+        <PageHeader
+          online={online}
+          account={
+            <SignInPanel
+              auth={auth}
+              busy={auth.busy || state.restoring}
+              online={online}
+              connected={false}
+              onConnect={state.connectAccount}
+            />
+          }
+        />
         <main>
-          <section className="hero">
-            <span className="eyebrow">AFTER WORK, BEFORE SCROLLING</span>
-            <h1>
-              A little outside.
-              <br />
-              <em>A little more present.</em>
-            </h1>
-            <p>Sign in to start your small outing. Your journal stays yours.</p>
+          <section className="welcome-layout">
+            <div className="hero welcome-hero">
+              <span className="eyebrow">AFTER WORK, BEFORE SCROLLING</span>
+              <h1>
+                A little outside.
+                <br />
+                <em>A little more present.</em>
+              </h1>
+              <p>
+                A full day deserves a small pause. Find one thing to notice
+                outside, then put your phone away.
+              </p>
+              <div className="hero-notes">
+                <span>10–20 minutes</span>
+                <span>No routes or streaks</span>
+                <span>Just you, outside</span>
+              </div>
+            </div>
+            <div className="welcome-art" aria-hidden="true">
+              <div className="lap-art">
+                <span />
+                <span />
+                <span />
+                <i />
+              </div>
+              <p>
+                A small lap.
+                <br />A fresh perspective.
+              </p>
+            </div>
           </section>
           {!online && (
             <Notice>
               Connect to verify your sign-in before opening OneLap.
             </Notice>
           )}
-          <SignInPanel
-            auth={auth}
-            busy={auth.busy || state.restoring}
-            online={online}
-            connected={false}
-            onConnect={state.connectAccount}
-          />
+          <footer className="page-footer welcome-footer">
+            <p>Less scrolling. More noticing.</p>
+            <PrivacyNote />
+          </footer>
         </main>
       </div>
     )
@@ -106,7 +136,20 @@ export function Workspace({
 
   return (
     <div className={`page ${pocket ? 'pocket-page' : ''}`}>
-      <PageHeader online={online} />
+      <PageHeader
+        online={online}
+        account={
+          !pocket && auth.session?.enabled !== false ? (
+            <SignInPanel
+              auth={auth}
+              busy={busy}
+              online={online}
+              connected={Boolean(state.status)}
+              onConnect={state.connectAccount}
+            />
+          ) : undefined
+        }
+      />
       <main>
         {!pocket && (
           <section className={`hero ${state.mission ? 'hero-compact' : ''}`}>
@@ -180,15 +223,6 @@ export function Workspace({
             onDisconnect={state.disconnect}
           />
         )}
-        {!pocket && auth.session?.enabled !== false && (
-          <SignInPanel
-            auth={auth}
-            busy={busy}
-            online={online}
-            connected={Boolean(state.status)}
-            onConnect={state.connectAccount}
-          />
-        )}
         <div className={`mission-layout ${pocket ? 'single' : ''}`}>
           {state.mission && (
             <MissionCard
@@ -229,10 +263,6 @@ export function Workspace({
         {pocket && (
           <div className="pocket-footer">
             <p>Read it once. Put your phone away.</p>
-            <p className="small muted">
-              No timer, tracking or background model requests. Heading out does
-              not mark this mission complete.
-            </p>
             <button
               type="button"
               className="secondary-button"
@@ -263,25 +293,12 @@ export function Workspace({
             />
           )}
         {!pocket && (
-          <MissionImport
-            key={`import:${state.owner ?? 'device'}`}
-            busy={busy}
-            hasMission={Boolean(state.mission)}
-            onImport={state.importMission}
-          />
-        )}
-        {!pocket && (
           <footer className="page-footer">
             <p>Made for a small break, not another feed.</p>
             <p className="small muted">
-              {shell.state === 'ready'
-                ? 'Save a mission before going offline. Reopening needs sign-in verification.'
-                : shell.state === 'development'
-                  ? 'This preview needs an internet connection to reopen.'
-                  : shell.state === 'unavailable'
-                    ? 'Offline reopening is unavailable in this browser. Keep this page open.'
-                    : 'Preparing for offline reading…'}
+              Keep this page open when offline. Reconnect before reopening.
             </p>
+            <PrivacyNote />
           </footer>
         )}
       </main>

@@ -27,9 +27,9 @@ export function EmptyMission({
       </h2>
       <p>
         {restoring
-          ? 'Checking this device, not the model.'
+          ? 'Your last outing will be here in a moment.'
           : busy
-            ? 'Waiting for the checked model response. We won’t send another request automatically.'
+            ? 'Finding one small thing for you to notice.'
             : 'No route to plan. No streak to protect. Just a small reason to step outside.'}
       </p>
       <span className="quiet-label">A little noticing goes a long way.</span>

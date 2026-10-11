@@ -144,10 +144,10 @@ export function MissionBuilder({
           {!online
             ? 'Generation needs a connection. Your saved mission still works.'
             : !connected
-              ? 'Sign in or connect above before creating an outing.'
+              ? 'Reconnect your account to create an outing.'
               : disabled
-                ? 'Generation is not enabled yet. Check the backend settings.'
-                : 'One request. One mission. Saved on this device automatically.'}
+                ? 'New outings are unavailable right now. Your saved outing is still here.'
+                : 'Your outing will be saved here, ready when you are.'}
         </p>
       </form>
     </section>

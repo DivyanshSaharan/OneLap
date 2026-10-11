@@ -19,6 +19,7 @@ export function SignInPanel({
   onConnect: (owner: string) => Promise<boolean>
 }) {
   const container = useRef<HTMLDivElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
   const alive = useRef(true)
   const preparing = useRef(false)
   const [loading, setLoading] = useState(false)
@@ -94,11 +95,9 @@ export function SignInPanel({
     <section className="sign-in-panel" aria-label="Account">
       {auth.session?.owner_id ? (
         <>
-          <p className="small">
-            {auth.authenticated
-              ? 'Signed in with Google · your own journal'
-              : 'Your workspace is locked.'}
-          </p>
+          {!auth.authenticated && (
+            <p className="small">Your workspace is locked.</p>
+          )}
           {!connected && auth.authenticated && (
             <button
               className="secondary-button"
@@ -109,7 +108,7 @@ export function SignInPanel({
             </button>
           )}
           <button
-            className="text-button"
+            className="account-button"
             disabled={busy || !online}
             onClick={() => void auth.signOut()}
           >
@@ -118,46 +117,51 @@ export function SignInPanel({
         </>
       ) : auth.session?.enabled ? (
         <>
-          <p className="small">
-            Sign in to use OneLap and keep your journal separate from everyone
-            else’s.
-          </p>
           {!ready && (
             <button
-              className="secondary-button"
+              ref={trigger}
+              className="account-button"
+              aria-label="Sign in with Google"
               disabled={busy || loading || !online}
               onClick={() => void prepare()}
             >
-              {loading ? 'Preparing sign-in…' : 'Sign in with Google'}
+              {busy ? 'Signing in…' : loading ? 'Preparing…' : 'Sign in'}
             </button>
           )}
-          <div ref={container} hidden={!ready || busy || !online} />
-          <p className="small muted">
-            Sign-in opens Google’s login widget and stores a minimal session in
-            Atlas. It does not upload observations or call the model.
-          </p>
+          <div className="sign-in-popover" hidden={!ready || busy || !online}>
+            <p>Welcome to OneLap</p>
+            <div ref={container} />
+            <button
+              className="text-button"
+              onClick={() => {
+                ++revision.current
+                window.clearTimeout(timer.current)
+                container.current?.replaceChildren()
+                setReady(false)
+                window.setTimeout(() => trigger.current?.focus(), 0)
+              }}
+            >
+              Close sign-in
+            </button>
+          </div>
         </>
       ) : (
         <>
-          <p className="small">
-            {auth.busy
-              ? 'Checking sign-in…'
-              : 'Connect to check sign-in availability.'}
-          </p>
           <button
-            className="secondary-button"
+            className="account-button"
+            aria-label="Check sign-in"
             disabled={busy || !online}
             onClick={() => void auth.refresh()}
           >
-            Check sign-in
+            {busy ? 'Checking…' : 'Sign in'}
           </button>
         </>
       )}
-      {(auth.error || error) && <Notice error>{auth.error || error}</Notice>}
-      <p className="small muted">
-        Saved notes remain on this device after sign-out. They are not
-        encrypted; avoid shared browsers.
-      </p>
+      {(auth.error || error) && (
+        <div className="account-error">
+          <Notice error>{auth.error || error}</Notice>
+        </div>
+      )}
     </section>
   )
 }

@@ -890,12 +890,163 @@ select {
   }
 }
 .sign-in-panel {
-  margin: 1rem 0;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--line, #ddd);
-  border-radius: 1rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 280px;
 }
-
-.sign-in-panel .text-button {
-  margin-left: 0.75rem;
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+.account-button {
+  border: 1px solid #244b3c;
+  border-radius: 24px;
+  padding: 10px 22px;
+  background: #244b3c;
+  color: #fffef5;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.account-button:hover:not(:disabled) {
+  background: #37634b;
+}
+.sign-in-popover,
+.account-error {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  z-index: 5;
+  width: min(294px, calc(100vw - 30px));
+  padding: 16px;
+  background: #fffef8;
+  border: 1px solid #dfe2d6;
+  border-radius: 16px;
+  box-shadow: 0 12px 35px #25382e18;
+}
+.sign-in-popover[hidden] {
+  display: none;
+}
+.sign-in-popover > p {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.sign-in-popover .text-button {
+  display: block;
+  margin: 10px auto 0;
+}
+.account-error .notice {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.welcome-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+.welcome-page > main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.welcome-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  align-items: center;
+  gap: 36px;
+  padding: 64px 0;
+}
+.welcome-hero {
+  padding: 0;
+}
+.welcome-art {
+  border-radius: 50% 50% 22px 22px;
+  background: #e9eedf;
+  padding: 30px;
+  text-align: center;
+}
+.welcome-art > p {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  line-height: 1.4;
+  color: #55714e;
+  margin: 25px 0 0;
+}
+.welcome-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 0;
+}
+.privacy-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #64705e;
+}
+.privacy-note summary {
+  padding: 0 0 10px;
+}
+.privacy-note p {
+  max-width: 520px;
+}
+@media (max-width: 760px) {
+  .welcome-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 48px 0 32px;
+  }
+  .welcome-art {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-radius: 20px;
+    padding: 15px 20px;
+  }
+  .welcome-art .lap-art {
+    flex: 0 0 160px;
+    margin: 0;
+    height: 110px;
+  }
+  .welcome-art > p {
+    margin: 0;
+    font-size: 20px;
+    text-align: left;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions .connection {
+    font-size: 0;
+    gap: 0;
+  }
+  .account-button {
+    padding: 10px 17px;
+  }
+  .sign-in-panel {
+    max-width: 155px;
+  }
+  .sign-in-panel > .small {
+    display: none;
+  }
+}
+@media (max-width: 390px) {
+  .welcome-art {
+    padding: 12px;
+    gap: 5px;
+  }
+  .welcome-art .lap-art {
+    flex-basis: 145px;
+    transform: scale(0.85);
+    transform-origin: left center;
+  }
 }

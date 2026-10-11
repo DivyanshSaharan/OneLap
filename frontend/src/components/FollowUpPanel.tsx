@@ -99,8 +99,8 @@ export function FollowUpPanel({
     <div className="followup-panel">
       <h3>Reflect and choose what comes next.</h3>
       <p className="small muted">
-        Pick one completed outing and up to two earlier notes. The server checks
-        these records in Atlas before sending them to Qwen.
+        Choose a completed outing and, if you like, two earlier notes to help
+        shape your next small lap.
       </p>
       {followUp.error && <Notice error>{followUp.error}</Notice>}
       {followUp.message && <Notice>{followUp.message}</Notice>}
@@ -114,15 +114,15 @@ export function FollowUpPanel({
       {readiness && (
         <p className="small muted" role="status">
           {readiness.enabled
-            ? 'Model and journal settings are enabled. This check does not verify the selected Atlas records.'
+            ? 'Choose a synced observation, then review what you’d like to share.'
             : (journalReasons[readiness.disabled_reason ?? ''] ??
-              'Follow-up is not available with the current server settings.')}
+              'AI follow-up is unavailable right now.')}
         </p>
       )}
       {!eligible.length ? (
         <p className="small muted">
-          Sync a completed observation to Atlas first, then load the cloud
-          journal here.
+          Sync a completed observation, then load your cloud journal to choose
+          it here.
         </p>
       ) : (
         <>
@@ -205,9 +205,8 @@ export function FollowUpPanel({
             <div className="followup-sharing">
               <p className="small">
                 This request will send the selected observation, feedback and
-                mission summaries to hosted Qwen through Tinker. The server
-                reads the selected records from Atlas. One model request will
-                use the configured spending reservation.
+                mission summaries to hosted Qwen through Tinker for one AI
+                follow-up.
               </p>
               <label className="consent">
                 <input

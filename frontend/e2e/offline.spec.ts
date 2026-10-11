@@ -72,7 +72,7 @@ test('changing journals isolates missions and notes while retaining device-only 
   ).toBeVisible()
 })
 
-test('imports offline after sign-in, locks on offline reload and restores after verification', async ({
+test('deployment workspace has no mission-file importer online or offline', async ({
   page,
   context,
 }) => {
@@ -80,48 +80,16 @@ test('imports offline after sign-in, locks on offline reload and restores after 
   await page.goto('/')
   await expect(
     page.getByText(
-      'Save a mission before going offline. Reopening needs sign-in verification.',
+      'Keep this page open when offline. Reconnect before reopening.',
     ),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
-  await expect(page.getByLabel('Mission JSON file')).toBeEnabled()
+  await expect(page.getByLabel('Mission JSON file')).toHaveCount(0)
+  await expect(
+    page.getByText('Use a captured mission · no model request'),
+  ).toHaveCount(0)
   await context.setOffline(true)
-  await page
-    .getByText('Use a captured mission · no model request', { exact: true })
-    .click()
-  await page.getByLabel('Mission JSON file').setInputFiles({
-    name: 'bad.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from('{"private":"test-sentinel"}'),
-  })
-  await expect(page.getByRole('alert')).toContainText('could not be opened')
-  await expect(page.getByText('test-sentinel')).toHaveCount(0)
-  const imported = {
-    ...fixture,
-    mission: {
-      ...fixture.mission,
-      title: 'Imported E2E fixture — not model output',
-    },
-  }
-  await page.getByLabel('Mission JSON file').setInputFiles({
-    name: 'captured.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(imported)),
-  })
-  await expect(page.getByText('FILE PREVIEW · NOT YET SAVED')).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: 'Save imported mission' }),
-  ).toBeDisabled()
-  await page
-    .getByRole('checkbox', { name: /I reviewed this unverified file/ })
-    .check()
-  await page.getByRole('button', { name: 'Save imported mission' }).click()
-  await expect(
-    page.getByText('Imported file · model provenance not verified'),
-  ).toBeVisible()
-  await expect(
-    page.getByText('Saved on this device · keep this page open when offline'),
-  ).toBeVisible()
+  await expect(page.getByLabel('Mission JSON file')).toHaveCount(0)
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     expect(
@@ -132,23 +100,14 @@ test('imports offline after sign-in, locks on offline reload and restores after 
   }
   await page.reload()
   await expect(page.getByText(/Connect to verify your sign-in/)).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: imported.mission.title }),
-  ).toHaveCount(0)
   expect(requests.filter((url) => url.endsWith('/api/missions'))).toHaveLength(
     0,
   )
   await context.setOffline(false)
   await expect(
-    page.getByRole('heading', { name: imported.mission.title }),
-  ).toBeVisible()
-  await expect(
-    page.getByText('Imported file · model provenance not verified'),
-  ).toBeVisible()
-  await page.getByRole('button', { name: /I’m heading out/ }).click()
-  await expect(
-    page.getByText('Imported file · model provenance not verified'),
-  ).toBeVisible()
+    page.getByRole('button', { name: 'Sign out', exact: true }),
+  ).toBeEnabled()
+  await expect(page.getByLabel('Mission JSON file')).toHaveCount(0)
   expect(requests.filter((url) => url.endsWith('/api/missions'))).toHaveLength(
     0,
   )
@@ -217,7 +176,7 @@ test('a verified open app reads offline but reopening requires session verificat
   await page.goto('/')
   await expect(
     page.getByText(
-      'Save a mission before going offline. Reopening needs sign-in verification.',
+      'Keep this page open when offline. Reconnect before reopening.',
     ),
   ).toBeVisible()
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
@@ -236,7 +195,7 @@ test('a verified open app reads offline but reopening requires session verificat
   expect(requests).toHaveLength(3)
   await page.getByRole('button', { name: /I’m heading out/ }).click()
   await expect(
-    page.getByText(/does not mark this mission complete/),
+    page.getByText('Read it once. Put your phone away.'),
   ).toBeVisible()
   await context.setOffline(true)
   await expect(page.getByText('Device offline')).toBeVisible()

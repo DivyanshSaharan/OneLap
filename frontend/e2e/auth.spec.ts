@@ -104,6 +104,28 @@ test('Google fixture login restores on reload, isolates local accounts and never
     page.getByRole('button', { name: 'Sign in with Google', exact: true }),
   ).toBeEnabled()
   await expectLocked()
+  await expect(
+    page
+      .locator('header')
+      .getByRole('button', { name: 'Sign in with Google', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText(/minimal session in Atlas/)).toHaveCount(0)
+  await expect(
+    page.getByText(/Saved notes remain on this device after sign-out/),
+  ).toHaveCount(0)
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true)
+  }
+  await page.screenshot({
+    path: '.data/auth-signin-desktop.png',
+    fullPage: true,
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: '.data/auth-signin-390.png', fullPage: true })
 
   async function login() {

@@ -109,3 +109,44 @@ it('does not expose a legacy token input when auth availability is unknown', () 
   expect(screen.queryByLabelText('Server access token')).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Check sign-in' })).toBeEnabled()
 })
+
+it('keeps technical explanations out of the account control', () => {
+  render(
+    <SignInPanel
+      auth={auth()}
+      busy={false}
+      online
+      connected={false}
+      onConnect={vi.fn()}
+    />,
+  )
+  expect(screen.queryByText(/minimal session in Atlas/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/Saved notes remain/)).not.toBeInTheDocument()
+  expect(
+    screen.queryByText(/keep your journal separate/),
+  ).not.toBeInTheDocument()
+})
+
+it('dismisses the Google chooser and ignores its stale callback', async () => {
+  const state = auth()
+  render(
+    <SignInPanel
+      auth={state}
+      busy={false}
+      online
+      connected={false}
+      onConnect={vi.fn()}
+    />,
+  )
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Sign in with Google' }),
+  )
+  await screen.findByText('Welcome to OneLap')
+  const callback = mocks.initialize.mock.calls[0][0].callback
+  await userEvent.click(screen.getByRole('button', { name: 'Close sign-in' }))
+  expect(
+    screen.getByRole('button', { name: 'Sign in with Google' }),
+  ).toBeVisible()
+  callback({ credential: 'fictional-token' })
+  expect(state.finish).not.toHaveBeenCalled()
+})
