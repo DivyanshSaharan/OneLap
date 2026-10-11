@@ -1,0 +1,37 @@
+services:
+  onelap:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: onelap:local
+    ports:
+      - '127.0.0.1:4178:10000'
+    env_file:
+      - path: ${ONELAP_DOCKER_ENV_FILE:-.env.docker}
+        required: true
+    environment:
+      PORT: '10000'
+      ONELAP_SERVE_FRONTEND: 'true'
+      ONELAP_AUTH_ORIGINS: http://localhost:4178
+      ONELAP_ACCESS_TOKEN: ''
+      ONELAP_MODEL_TARGET: base
+      ONELAP_CHECKPOINT_APPROVED: 'false'
+      ONELAP_CHECKPOINT_RECEIPT: ''
+      ONELAP_CHECKPOINT_RECEIPT_SHA256: ''
+      ONELAP_HOSTED_REQUESTS_ENABLED: 'false'
+      ONELAP_DATA_SHARING_APPROVED: 'false'
+      ONELAP_REFLECTION_SHARING_APPROVED: 'false'
+      ONELAP_APPROVED_BUDGET_USD: '0'
+      ONELAP_MAX_MODEL_REQUESTS: '20'
+      ONELAP_BUDGET_STORAGE: atlas
+      ONELAP_ATLAS_BUDGET_APPROVED: 'false'
+      ONELAP_JOURNAL_ENABLED: 'false'
+      ONELAP_ATLAS_SHARING_APPROVED: 'false'
+      ONELAP_TRACING_ENABLED: 'false'
+      ONELAP_TRACE_SHARING_APPROVED: 'false'
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 20s

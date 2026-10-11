@@ -47,6 +47,15 @@ The local environment is isolated from GuardMate. Nothing from GuardMate's priva
 
 The root `Dockerfile` builds the React PWA and FastAPI API into one same-origin service. `render.yaml` selects Render's free web-service plan, disables preview environments and automatic deploys, and keeps model spending, note synchronization and reflection sharing off. It requests private Google client configuration, the Atlas URI and the actual HTTPS origin; no credential values are committed. The bundled server requires Google configuration or an explicitly protected legacy token. The public deployment path uses Google authentication, not a distributed shared token.
 
+The local Linux Docker image now builds successfully and passes a network-disabled,
+non-root smoke test plus loading of the existing adapter receipt and dependency
+checks. `compose.yaml` provides a loopback-only local setup at `localhost:4178`
+with separate ignored credentials and all sharing/spending gates forcibly off.
+The Render Blueprint includes the Tinker key and explicit adapter receipt settings;
+the private receipt belongs in a runtime secret file, never the image. See
+[Docker/Render setup and verification](docs/docker-deployment.md). No Render
+deployment or remote model/Atlas test is implied by container verification.
+
 Google sessions derive a separate journal UUID from each verified account. Atlas `auth_sessions` stores minimal revocable session metadata, separately from notes and global spending counters. Existing personal-journal data is not silently migrated. The legacy token-only development mode remains single-person; never distribute that token.
 
 Model and note-sync gates remain off in the template. Render free services have an ephemeral filesystem, so production inference requires the new Atlas spending counter and an explicit immutable import of existing reservations; it refuses the file-backed mode for hosted production inference. [Migration setup](docs/budget.md) and [isolated Atlas evidence](docs/atlas-budget-verification.md) are provided. Real Google/Atlas-session verification must pass before public paid use. Free services cannot attach a persistent disk and may take about a minute to wake after 15 minutes idle. See [Render's free-service limits](https://render.com/docs/free), [persistent-disk behavior](https://render.com/docs/disks), and [Blueprint secret configuration](https://render.com/docs/blueprint-spec).

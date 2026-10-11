@@ -16,3 +16,8 @@ test-results
 playwright-report
 coverage
 *.log
+.secrets
+**/.secrets
+onelap-checkpoint-receipt.json
+.agents
+.codex

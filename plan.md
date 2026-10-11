@@ -1,5 +1,20 @@
 # OneLap: implementation and handoff plan
 
+## October 11 Docker deployment preparation
+
+The owner approved committing/pushing UI cleanup and then creating the Docker
+setup. UI cleanup is pushed at `8c12caf`, following auth commit `e9679a8`.
+The new Docker increment adds a separate private-env Compose service on loopback
+4178, Docker health/signal handling, private receipt exclusions, complete Render
+runtime configuration and a repeatable network-disabled container smoke test.
+Docker Desktop's Linux engine is now running. Image build, smoke, non-root loading
+of the real receipt, container dependency check, Compose validation and all 543
+offline backend tests pass. Temporary containers were removed; images remain.
+No real auth/Atlas/Tinker requests, spending-counter migration or Render deployment
+occurred. Root `.env` and existing spending ledgers are unchanged. The Docker
+increment is approved for commit/push by the owner's subsequent model-selection request. See docs/docker-deployment.md for commands,
+secret-file/adapter activation and the remaining public HTTPS verification.
+
 ## October 11 Google authentication approval
 
 The owner explicitly confirmed Google authentication and per-user Atlas journal isolation, replacing the earlier exclusion below. This increment implements popup sign-in, backend verification, revocable Atlas sessions, account-derived journal ownership and the UI boundary. Offline tests use synthetic identities only; live Google login and Atlas auth-session checks remain user-driven. No new paid calls, journal uploads, migration of the legacy personal journal or Render deployment are authorized. The owner approved committing and pushing this authentication increment after testing local login/logout and requesting the mandatory gate. The preceding pushed commit is `7b035e5`.

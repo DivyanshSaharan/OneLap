@@ -11,7 +11,8 @@ FROM python:3.13-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/backend \
-    ONELAP_SERVE_FRONTEND=true
+    ONELAP_SERVE_FRONTEND=true \
+    PORT=10000
 
 WORKDIR /app
 
@@ -33,4 +34,6 @@ RUN addgroup --system onelap \
 USER onelap
 
 EXPOSE 10000
-CMD ["sh", "-c", "uvicorn onelap.main:create_app --factory --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --no-proxy-headers"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '10000') + '/health', timeout=3)"
+CMD ["sh", "-c", "exec uvicorn onelap.main:create_app --factory --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --no-proxy-headers"]

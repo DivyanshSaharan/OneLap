@@ -21,18 +21,28 @@ services:
         sync: false
       - key: MONGODB_URI
         sync: false
+      - key: ONELAP_MONGODB_DATABASE
+        value: onelap
+      - key: TINKER_API_KEY
+        sync: false
       - key: ONELAP_HOSTED_REQUESTS_ENABLED
         value: 'false'
       - key: ONELAP_MODEL_TARGET
         value: base
       - key: ONELAP_CHECKPOINT_APPROVED
         value: 'false'
+      - key: ONELAP_CHECKPOINT_RECEIPT
+        value: ''
+      - key: ONELAP_CHECKPOINT_RECEIPT_SHA256
+        value: ''
       - key: ONELAP_DATA_SHARING_APPROVED
         value: 'false'
       - key: ONELAP_REFLECTION_SHARING_APPROVED
         value: 'false'
       - key: ONELAP_APPROVED_BUDGET_USD
         value: '0'
+      - key: ONELAP_MAX_MODEL_REQUESTS
+        value: '20'
       - key: ONELAP_BUDGET_STORAGE
         value: atlas
       - key: ONELAP_ATLAS_BUDGET_APPROVED
